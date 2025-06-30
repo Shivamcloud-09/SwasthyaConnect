@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -60,7 +59,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                                     style={{ border: 0 }}
                                     loading="lazy"
                                     allowFullScreen
-                                    src={`https://www.google.com/maps/embed/v1/place?key=DUMMY_KEY&q=${hospital.location.lat},${hospital.location.lng}`}>
+                                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDwHEtIv-k5mM8i0HmsLHV_eCTwj6be-Z8&q=${hospital.location.lat},${hospital.location.lng}`}>
                                 </iframe>
                              </CardContent>
                         </Card>
