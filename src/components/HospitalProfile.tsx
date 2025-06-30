@@ -60,14 +60,14 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                                     loading="lazy"
                                     allowFullScreen
                                     src={`https://www.google.com/maps?q=${hospital.location.lat},${hospital.location.lng}&output=embed`}
-                                />
+                                ></iframe>
                              </CardContent>
                         </Card>
                         
                         {/* Doctors List */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 font-headline"><Stethoscope /> Available Doctors</CardTitle>
+                                <CardTitle className="flex items-center gap-2 font-headline"><Stethoscope /></CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ul className="space-y-4">
@@ -89,7 +89,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                              <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 font-headline"><Tag /> Services Offered</CardTitle>
-                                </Header>
+                                </CardHeader>
                                 <CardContent className="flex flex-wrap gap-2">
                                     {hospital.services.map(service => <Badge key={service}>{service}</Badge>)}
                                 </CardContent>
@@ -97,7 +97,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                              <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 font-headline"><Syringe /> Available Medicines</CardTitle>
-                                </Header>
+                                </CardHeader>
                                 <CardContent className="flex flex-wrap gap-2">
                                      {hospital.medicines.map(med => <Badge variant="outline" key={med}>{med}</Badge>)}
                                 </CardContent>
@@ -135,7 +135,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Get Help</CardTitle>
-                            </Header>
+                            </CardHeader>
                             <CardContent className="space-y-3">
                                 <BookRideButtons location={hospital.location} />
                                 <RequestDoctorVisit hospitalName={hospital.name} />
