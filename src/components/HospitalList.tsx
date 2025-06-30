@@ -38,10 +38,19 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
                 setIsLocating(false);
             },
             (error) => {
-                setLocationError('Could not access your location. You may need to grant permission in your browser settings. Showing all hospitals instead.');
+                let message = 'Could not access your location. You may need to grant permission in your browser settings.';
+                if (error.code === error.TIMEOUT) {
+                    message = 'Could not get your location in time. Please try again.';
+                }
+                setLocationError(message + ' Showing all hospitals instead.');
                 console.error("Geolocation error:", error);
                 setIsLocating(false);
                 setShowAll(true);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
             }
         );
     } else {
