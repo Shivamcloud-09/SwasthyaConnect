@@ -46,9 +46,6 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
                 try {
                     const results = await findNearbyHospitals(coords);
                     setApiHospitals(results);
-                    if (results.length === 0 && !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
-                        setLocationError("Could not find nearby hospitals. Ensure your GOOGLE_MAPS_API_KEY is configured correctly.");
-                    }
                 } catch (error) {
                     console.error("API call to find hospitals failed:", error);
                     setLocationError("Could not fetch nearby hospitals from Google. Showing all hospitals instead.");
