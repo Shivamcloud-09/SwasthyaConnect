@@ -1,6 +1,7 @@
 
 import Link from 'next/link';
 import { Hospital } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 const Header = () => {
   return (
@@ -11,10 +12,11 @@ const Header = () => {
             <Hospital className="w-6 h-6" />
             <span>SwasthyaConnect</span>
           </Link>
-          <nav>
+          <nav className="flex items-center gap-4">
             <Link href="/admin/login" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
               Hospital Login
             </Link>
+            <ThemeToggle />
           </nav>
         </div>
       </div>
