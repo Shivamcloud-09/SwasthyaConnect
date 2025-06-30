@@ -56,16 +56,21 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
   }
 
   const processedHospitals = useMemo(() => {
-    const hospitalsWithDistance = hospitals.map(h => ({
+    // 1. Start with all hospitals and calculate distances if location is available.
+    let filteredHospitals = hospitals.map(h => ({
         ...h,
         distance: userLocation ? getDistance(userLocation, h.location) : undefined
     }));
 
-    let filtered = hospitalsWithDistance;
+    // 2. Filter by distance if in "nearby" mode.
+    if (userLocation && !showAll) {
+        filteredHospitals = filteredHospitals.filter(h => h.distance !== undefined && h.distance <= 25);
+    }
 
+    // 3. Filter by search term on the (potentially distance-filtered) list.
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
-      filtered = hospitalsWithDistance.filter(hospital =>
+      filteredHospitals = filteredHospitals.filter(hospital =>
         hospital.name.toLowerCase().includes(lowercasedTerm) ||
         hospital.address.toLowerCase().includes(lowercasedTerm) ||
         hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm)) ||
@@ -73,14 +78,11 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
       );
     }
 
-    if (userLocation && !showAll) {
-        return filtered
-            .filter(h => h.distance !== undefined && h.distance <= 25) // 25km radius
-            .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+    // 4. Sort the results. Prioritize distance if available.
+    if (userLocation) {
+        return filteredHospitals.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
     }
-    
-    // Fallback sort by name if not sorting by distance
-    return filtered.sort((a, b) => a.name.localeCompare(b.name));
+    return filteredHospitals.sort((a, b) => a.name.localeCompare(b.name));
 
   }, [searchTerm, hospitals, userLocation, showAll]);
 
@@ -158,6 +160,11 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
                 : "No hospitals found matching your search."
                 }
             </p>
+             {userLocation && !showAll && searchTerm.length === 0 && (
+                <Button variant="secondary" onClick={() => setShowAll(true)} className="mt-4">
+                    View All Hospitals
+                </Button>
+            )}
         </div>
     );
   }
