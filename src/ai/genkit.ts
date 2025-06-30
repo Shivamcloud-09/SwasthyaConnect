@@ -11,5 +11,6 @@ export const ai = genkit({
     // it's available for all Genkit operations, resolving authentication issues.
     googleAI({ apiKey: apiKey }),
   ],
-  model: 'googleai/gemini-2.0-flash',
+  // Use the model helper function as recommended by the latest Genkit docs
+  model: googleAI.model('gemini-2.5-flash'),
 });
