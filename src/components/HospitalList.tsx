@@ -1,12 +1,11 @@
-
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { Hospital } from '@/lib/types';
 import { getDistance } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import HospitalCard from '@/components/HospitalCard';
-import { Search, LoaderCircle, AlertTriangle, List } from 'lucide-react';
+import { Search, LoaderCircle, AlertTriangle, List, MapPin } from 'lucide-react';
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
@@ -17,11 +16,16 @@ type HospitalListProps = {
 export default function HospitalList({ hospitals }: HospitalListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [isLocating, setIsLocating] = useState(true);
+  const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [permissionFlowStarted, setPermissionFlowStarted] = useState(false);
 
-  useEffect(() => {
+  const handleFindNearby = () => {
+    setIsLocating(true);
+    setLocationError(null);
+    setPermissionFlowStarted(true);
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -29,10 +33,11 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude,
                 });
+                setShowAll(false); // Default to nearby view on success
                 setIsLocating(false);
             },
             (error) => {
-                setLocationError('Could not access your location. Showing all hospitals instead.');
+                setLocationError('Could not access your location. You may need to grant permission in your browser settings. Showing all hospitals instead.');
                 console.error("Geolocation error:", error);
                 setIsLocating(false);
                 setShowAll(true);
@@ -43,7 +48,12 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
         setIsLocating(false);
         setShowAll(true);
     }
-  }, []);
+  };
+  
+  const handleShowAll = () => {
+    setPermissionFlowStarted(true);
+    setShowAll(true);
+  }
 
   const processedHospitals = useMemo(() => {
     const hospitalsWithDistance = hospitals.map(h => ({
@@ -74,6 +84,84 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
 
   }, [searchTerm, hospitals, userLocation, showAll]);
 
+
+  const renderToggleButton = () => {
+    // If we have a location, the button toggles between nearby and all.
+    if (userLocation) {
+        return (
+            <Button variant="outline" onClick={() => setShowAll(!showAll)}>
+                <List className="mr-2 h-4 w-4" />
+                {showAll ? 'Only Show Nearby' : 'Show All Hospitals'}
+            </Button>
+        )
+    }
+    // If we are showing all but don't have a location, the button should prompt for location.
+    if (showAll && !userLocation) {
+        return (
+             <Button variant="outline" onClick={handleFindNearby}>
+                <MapPin className="mr-2 h-4 w-4" />
+                Find Nearby Hospitals
+            </Button>
+        )
+    }
+    return null;
+  }
+
+  const renderContent = () => {
+    if (!permissionFlowStarted) {
+        return (
+            <div className="text-center py-16 max-w-lg mx-auto bg-card border p-8 rounded-lg shadow-sm">
+              <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
+              <h2 className="text-2xl font-semibold mb-2 font-headline">Find Care Near You</h2>
+              <p className="text-muted-foreground mb-6">Allow location access to find the nearest hospitals, or view a list of all available hospitals.</p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button size="lg" onClick={handleFindNearby}>
+                    Use My Location
+                </Button>
+                <Button size="lg" variant="secondary" onClick={handleShowAll}>
+                    View All Hospitals
+                </Button>
+              </div>
+            </div>
+        );
+    }
+
+    if (isLocating) {
+        return (
+            <div className="flex justify-center items-center py-16">
+                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-lg text-muted-foreground">Finding nearby hospitals...</p>
+            </div>
+        );
+    }
+
+    if (processedHospitals.length > 0) {
+        return (
+            <>
+                 <div className="text-center mb-6">
+                    {renderToggleButton()}
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {processedHospitals.map(hospital => (
+                        <HospitalCard key={hospital.id} hospital={hospital} distance={hospital.distance} />
+                    ))}
+                </div>
+            </>
+        )
+    }
+
+    return (
+        <div className="text-center py-16">
+            <p className="text-xl text-muted-foreground">
+                {userLocation && !showAll 
+                ? "No hospitals found within 25km."
+                : "No hospitals found matching your search."
+                }
+            </p>
+        </div>
+    );
+  }
+
   return (
     <div>
       <div className="relative mb-8 max-w-2xl mx-auto">
@@ -87,14 +175,7 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
         />
       </div>
 
-      {isLocating && (
-        <div className="flex justify-center items-center py-16">
-            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-lg text-muted-foreground">Finding nearby hospitals...</p>
-        </div>
-      )}
-
-      {locationError && !isLocating && (
+      {locationError && (
         <Alert variant="destructive" className="max-w-2xl mx-auto mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Location Error</AlertTitle>
@@ -102,31 +183,8 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
         </Alert>
       )}
 
-      {!isLocating && userLocation && (
-        <div className="text-center mb-6">
-            <Button variant="outline" onClick={() => setShowAll(!showAll)}>
-                <List className="mr-2 h-4 w-4" />
-                {showAll ? 'Show Nearby Hospitals' : 'Show All Hospitals'}
-            </Button>
-        </div>
-      )}
+      {renderContent()}
 
-      {!isLocating && processedHospitals.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {processedHospitals.map(hospital => (
-            <HospitalCard key={hospital.id} hospital={hospital} distance={hospital.distance} />
-          ))}
-        </div>
-      ) : !isLocating && (
-        <div className="text-center py-16">
-          <p className="text-xl text-muted-foreground">
-            {userLocation && !showAll 
-              ? "No hospitals found within 25km."
-              : "No hospitals found matching your search."
-            }
-          </p>
-        </div>
-      )}
     </div>
   );
 }
