@@ -8,13 +8,14 @@ import type { Hospital } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BedDouble, Droplet, ShieldCheck, ArrowRight } from 'lucide-react';
+import { BedDouble, Droplet, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
 
 type HospitalCardProps = {
   hospital: Hospital;
+  distance?: number;
 };
 
-export default function HospitalCard({ hospital: initialHospital }: HospitalCardProps) {
+export default function HospitalCard({ hospital: initialHospital, distance }: HospitalCardProps) {
     const [hospital, setHospital] = useState(initialHospital);
 
     useEffect(() => {
@@ -33,8 +34,18 @@ export default function HospitalCard({ hospital: initialHospital }: HospitalCard
   return (
     <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
-            <CardTitle className="font-headline text-xl text-primary">{name}</CardTitle>
-            <CardDescription>{address}</CardDescription>
+            <div className="flex justify-between items-start">
+                <div>
+                    <CardTitle className="font-headline text-xl text-primary">{name}</CardTitle>
+                    <CardDescription>{address}</CardDescription>
+                </div>
+                {distance !== undefined && (
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground whitespace-nowrap">
+                        <MapPin className="h-4 w-4" />
+                        <span>{distance.toFixed(1)} km</span>
+                    </div>
+                )}
+            </div>
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
             <div data-ai-hint="hospital building" className="relative h-40 w-full rounded-md overflow-hidden">
