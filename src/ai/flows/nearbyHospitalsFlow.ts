@@ -47,7 +47,7 @@ export const findNearbyHospitals = ai.defineFlow(
     }
 
     const radius = 25000; // 25km radius
-    const url = `${PLACES_API_URL}?location=${lat},${lng}&radius=${radius}&type=hospital&key=${API_KEY}`;
+    const url = `${PLACES_API_URL}?location=${lat},${lng}&radius=${radius}&keyword=hospital&key=${API_KEY}`;
 
     try {
       const response = await fetch(url);
