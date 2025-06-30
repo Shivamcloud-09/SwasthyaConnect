@@ -42,27 +42,30 @@ export const findNearbyHospitals = ai.defineFlow(
   async ({ lat, lng }) => {
     if (!API_KEY) {
       console.error('GOOGLE_MAPS_API_KEY is not set in .env.local');
-      // Return an empty array or throw an error if the key is missing.
-      return [];
+      // Throw an error that the client can catch and display.
+      throw new Error('Server is missing the Google Maps API key.');
     }
 
-    const radius = 25000; // 25km radius
+    const radius = 50000; // 50km radius, increased for better coverage
     const url = `${PLACES_API_URL}?location=${lat},${lng}&radius=${radius}&keyword=hospital&key=${API_KEY}`;
 
     try {
       const response = await fetch(url);
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Google Places API error:', errorData);
-        throw new Error(`Google Places API request failed with status ${response.status}`);
-      }
       const data = await response.json();
 
-      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-        console.error('Google Places API returned status:', data.status, data.error_message);
-        throw new Error(`Google Places API returned status: ${data.status}`);
+      // Check for API errors returned in the JSON body
+      if (data.status && !['OK', 'ZERO_RESULTS'].includes(data.status)) {
+        const errorMessage = data.error_message || `API returned status: ${data.status}`;
+        console.error('Google Places API error:', errorMessage, data);
+        throw new Error(`Google Places API Error: ${errorMessage}`);
       }
 
+      // Check for network errors
+      if (!response.ok) {
+        console.error('Google Places API network error:', response.statusText);
+        throw new Error(`Google Places API request failed with status ${response.status}`);
+      }
+      
       const hospitals = (data.results || []).map((place: any) => ({
         place_id: place.place_id,
         name: place.name,
@@ -78,7 +81,8 @@ export const findNearbyHospitals = ai.defineFlow(
       return hospitals;
     } catch (error) {
       console.error('Failed to fetch from Google Places API:', error);
-      return [];
+      // Re-throw the error so the client-side catch block can handle it
+      throw error;
     }
   }
 );

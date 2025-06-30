@@ -48,7 +48,8 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
                     setApiHospitals(results);
                 } catch (error) {
                     console.error("API call to find hospitals failed:", error);
-                    setLocationError("Could not fetch nearby hospitals from Google. Showing all hospitals instead.");
+                    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+                    setLocationError(`Could not fetch nearby hospitals. Reason: ${errorMessage}`);
                     setViewMode('all');
                 } finally {
                     setIsFetchingApi(false);
