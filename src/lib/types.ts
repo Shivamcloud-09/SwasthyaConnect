@@ -39,3 +39,15 @@ export type Hospital = {
   };
   license: string;
 };
+
+export type NearbyHospital = {
+  place_id: string;
+  name: string;
+  address: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  rating?: number;
+  user_ratings_total?: number;
+};

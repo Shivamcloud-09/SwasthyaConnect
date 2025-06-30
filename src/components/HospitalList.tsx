@@ -2,50 +2,70 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import type { Hospital } from '@/lib/types';
+import type { Hospital, NearbyHospital } from '@/lib/types';
 import { getDistance } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import HospitalCard from '@/components/HospitalCard';
-import { Search, LoaderCircle, AlertTriangle, List, MapPin } from 'lucide-react';
+import { Search, LoaderCircle, AlertTriangle, List, MapPin, ServerCrash } from 'lucide-react';
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
 
 type HospitalListProps = {
-  hospitals: Hospital[];
+  staticHospitals: Hospital[];
 };
 
-export default function HospitalList({ hospitals }: HospitalListProps) {
+type HospitalWithDistance = (Hospital | NearbyHospital) & { distance?: number };
+
+export default function HospitalList({ staticHospitals }: HospitalListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
-  const [permissionFlowStarted, setPermissionFlowStarted] = useState(false);
+  
+  const [viewMode, setViewMode] = useState<'prompt' | 'nearby' | 'all'>('prompt');
+  const [apiHospitals, setApiHospitals] = useState<NearbyHospital[]>([]);
+  const [isFetchingApi, setIsFetchingApi] = useState(false);
+
 
   const handleFindNearby = () => {
     setIsLocating(true);
     setLocationError(null);
-    setPermissionFlowStarted(true);
+    setViewMode('nearby'); 
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                setUserLocation({
+            async (position) => {
+                const coords = {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude,
-                });
-                setShowAll(false); // Default to nearby view on success
+                };
+                setUserLocation(coords);
                 setIsLocating(false);
+                setIsFetchingApi(true);
+                try {
+                    const results = await findNearbyHospitals(coords);
+                    setApiHospitals(results);
+                    if (results.length === 0 && !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) {
+                        setLocationError("Could not find nearby hospitals. Ensure your GOOGLE_MAPS_API_KEY is configured correctly.");
+                    }
+                } catch (error) {
+                    console.error("API call to find hospitals failed:", error);
+                    setLocationError("Could not fetch nearby hospitals from Google. Showing all hospitals instead.");
+                    setViewMode('all');
+                } finally {
+                    setIsFetchingApi(false);
+                }
             },
             (error) => {
-                let message = 'Could not access your location. You may need to grant permission in your browser settings.';
+                let message = 'Could not access your location. You may need to grant permission in your browser settings. Showing all hospitals instead.';
                 if (error.code === error.TIMEOUT) {
-                    message = 'Could not get your location in time. Please try again.';
+                    message = 'Could not get your location in time. Showing all hospitals instead.';
                 }
-                setLocationError(message + ' Showing all hospitals instead.');
+                setLocationError(message);
                 console.error("Geolocation error:", error);
                 setIsLocating(false);
-                setShowAll(true);
+                setViewMode('all');
             },
             {
                 enableHighAccuracy: true,
@@ -56,93 +76,85 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
     } else {
         setLocationError('Geolocation is not supported by your browser. Showing all hospitals.');
         setIsLocating(false);
-        setShowAll(true);
+        setViewMode('all');
     }
   };
   
   const handleShowAll = () => {
-    setPermissionFlowStarted(true);
-    setShowAll(true);
+    setViewMode('all');
   }
 
-  const processedHospitals = useMemo(() => {
-    // 1. Start with all hospitals and calculate distances if location is available.
-    let filteredHospitals = hospitals.map(h => ({
+  const processedHospitals: HospitalWithDistance[] = useMemo(() => {
+    let list: (Hospital | NearbyHospital)[] = [];
+
+    if (viewMode === 'nearby') {
+        list = apiHospitals;
+    } else if (viewMode === 'all') {
+        list = staticHospitals;
+    }
+
+    let hospitalWithDistance = list.map(h => ({
         ...h,
         distance: userLocation ? getDistance(userLocation, h.location) : undefined
     }));
-
-    // 2. Filter by distance if in "nearby" mode.
-    if (userLocation && !showAll) {
-        filteredHospitals = filteredHospitals.filter(h => h.distance !== undefined && h.distance <= 25);
-    }
-
-    // 3. Filter by search term on the (potentially distance-filtered) list.
+    
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
-      filteredHospitals = filteredHospitals.filter(hospital =>
+      hospitalWithDistance = hospitalWithDistance.filter(hospital =>
         hospital.name.toLowerCase().includes(lowercasedTerm) ||
         hospital.address.toLowerCase().includes(lowercasedTerm) ||
-        hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm)) ||
-        hospital.medicines.some(m => m.toLowerCase().includes(lowercasedTerm))
+        ('specialties' in hospital && hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm)))
       );
     }
 
-    // 4. Sort the results. Prioritize distance if available.
     if (userLocation) {
-        return filteredHospitals.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+        return hospitalWithDistance.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
     }
-    return filteredHospitals.sort((a, b) => a.name.localeCompare(b.name));
+    return hospitalWithDistance.sort((a, b) => a.name.localeCompare(b.name));
 
-  }, [searchTerm, hospitals, userLocation, showAll]);
+  }, [searchTerm, staticHospitals, apiHospitals, userLocation, viewMode]);
 
 
   const renderToggleButton = () => {
-    // If we have a location, the button toggles between nearby and all.
-    if (userLocation) {
-        return (
-            <Button variant="outline" onClick={() => setShowAll(!showAll)}>
-                <List className="mr-2 h-4 w-4" />
-                {showAll ? 'Only Show Nearby' : 'Show All Hospitals'}
-            </Button>
-        )
-    }
-    // If we are showing all but don't have a location, the button should prompt for location.
-    if (showAll && !userLocation) {
-        return (
-             <Button variant="outline" onClick={handleFindNearby}>
-                <MapPin className="mr-2 h-4 w-4" />
-                Find Nearby Hospitals
-            </Button>
-        )
-    }
-    return null;
+    if (viewMode === 'prompt' || isLocating) return null;
+
+    return (
+        <Button variant="outline" onClick={() => setViewMode(viewMode === 'all' ? 'nearby' : 'all')}>
+            {viewMode === 'all' ? (
+                <><MapPin className="mr-2 h-4 w-4" /> Show Nearby Hospitals (Live)</>
+            ) : (
+                <><List className="mr-2 h-4 w-4" /> Show All Hospitals (Curated)</>
+            )}
+        </Button>
+    );
   }
 
   const renderContent = () => {
-    if (!permissionFlowStarted) {
+    if (viewMode === 'prompt') {
         return (
             <div className="text-center py-16 max-w-lg mx-auto bg-card border p-8 rounded-lg shadow-sm">
               <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
               <h2 className="text-2xl font-semibold mb-2 font-headline">Find Care Near You</h2>
-              <p className="text-muted-foreground mb-6">Allow location access to find the nearest hospitals, or view a list of all available hospitals.</p>
+              <p className="text-muted-foreground mb-6">Use live search to find hospitals near you via Google, or view our curated list of hospitals.</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 <Button size="lg" onClick={handleFindNearby}>
-                    Use My Location
+                    Find Nearby
                 </Button>
                 <Button size="lg" variant="secondary" onClick={handleShowAll}>
-                    View All Hospitals
+                    View Curated List
                 </Button>
               </div>
             </div>
         );
     }
 
-    if (isLocating) {
+    if (isLocating || isFetchingApi) {
         return (
-            <div className="flex justify-center items-center py-16">
+            <div className="flex justify-center items-center py-16 flex-col gap-4">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-lg text-muted-foreground">Finding nearby hospitals...</p>
+                <p className="text-lg text-muted-foreground">
+                    {isLocating ? "Getting your location..." : "Searching for nearby hospitals via Google..."}
+                </p>
             </div>
         );
     }
@@ -155,7 +167,7 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {processedHospitals.map(hospital => (
-                        <HospitalCard key={hospital.id} hospital={hospital} distance={hospital.distance} />
+                        <HospitalCard key={('place_id' in hospital) ? hospital.place_id : hospital.id} hospital={hospital} distance={hospital.distance} />
                     ))}
                 </div>
             </>
@@ -163,18 +175,16 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
     }
 
     return (
-        <div className="text-center py-16">
-            <p className="text-xl text-muted-foreground">
-                {userLocation && !showAll 
-                ? "No hospitals found within 25km."
-                : "No hospitals found matching your search."
+        <div className="text-center py-16 max-w-lg mx-auto">
+            <ServerCrash className="h-12 w-12 mx-auto text-destructive mb-4" />
+            <h2 className="text-2xl font-semibold mb-2 font-headline">No Hospitals Found</h2>
+            <p className="text-muted-foreground mb-6">
+                {viewMode === 'nearby' 
+                ? "We couldn't find any hospitals nearby using Google Places API. This could be due to your location or an API configuration issue."
+                : "No hospitals found matching your search in our curated list."
                 }
             </p>
-             {userLocation && !showAll && searchTerm.length === 0 && (
-                <Button variant="secondary" onClick={() => setShowAll(true)} className="mt-4">
-                    View All Hospitals
-                </Button>
-            )}
+            {renderToggleButton()}
         </div>
     );
   }
@@ -185,17 +195,18 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="Search hospital, specialty, symptom, or medicine..."
+          placeholder="Search for a hospital..."
           className="pl-10 text-base py-6 rounded-full"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          disabled={viewMode === 'prompt'}
         />
       </div>
 
       {locationError && (
         <Alert variant="destructive" className="max-w-2xl mx-auto mb-6">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Location Error</AlertTitle>
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{locationError}</AlertDescription>
         </Alert>
       )}

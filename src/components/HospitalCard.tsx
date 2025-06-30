@@ -4,27 +4,72 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { Hospital } from '@/lib/types';
+import type { Hospital, NearbyHospital } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BedDouble, Droplet, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
+import { BedDouble, Droplet, ShieldCheck, ArrowRight, MapPin, Star } from 'lucide-react';
 
 type HospitalCardProps = {
-  hospital: Hospital;
+  hospital: Hospital | NearbyHospital;
   distance?: number;
 };
+
+function isNearbyHospital(hospital: Hospital | NearbyHospital): hospital is NearbyHospital {
+    return (hospital as NearbyHospital).place_id !== undefined;
+}
 
 export default function HospitalCard({ hospital: initialHospital, distance }: HospitalCardProps) {
     const [hospital, setHospital] = useState(initialHospital);
 
     useEffect(() => {
-        const storedData = localStorage.getItem(`swasthya-hospital-${initialHospital.id}`);
-        if (storedData) {
-            const updatedData = JSON.parse(storedData);
-            setHospital(prevHospital => ({ ...prevHospital, ...updatedData }));
+        if (!isNearbyHospital(initialHospital)) {
+            const storedData = localStorage.getItem(`swasthya-hospital-${initialHospital.id}`);
+            if (storedData) {
+                const updatedData = JSON.parse(storedData);
+                setHospital(prevHospital => ({ ...prevHospital, ...updatedData }));
+            }
         }
-    }, [initialHospital.id]);
+    }, [initialHospital]);
+
+  if (isNearbyHospital(hospital)) {
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.place_id}`;
+    return (
+        <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle className="font-headline text-xl text-primary">{hospital.name}</CardTitle>
+                        <CardDescription>{hospital.address}</CardDescription>
+                    </div>
+                    {distance !== undefined && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground whitespace-nowrap">
+                            <MapPin className="h-4 w-4" />
+                            <span>{distance.toFixed(1)} km</span>
+                        </div>
+                    )}
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+                {hospital.rating && (
+                    <div className="flex items-center gap-2">
+                       <Badge variant="secondary" className="flex items-center gap-1.5">
+                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> Google Rating: {hospital.rating.toFixed(1)} ({hospital.user_ratings_total})
+                       </Badge>
+                    </div>
+                )}
+                <p className="text-sm text-muted-foreground">Live data such as bed availability is not available for this hospital. Details are provided by Google.</p>
+            </CardContent>
+            <CardFooter>
+                <Button asChild className="w-full">
+                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                        View on Google Maps <ArrowRight className="ml-2 h-4 w-4" />
+                    </a>
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+  }
 
   const { id, name, address, hygiene, beds, oxygen } = hospital;
   
