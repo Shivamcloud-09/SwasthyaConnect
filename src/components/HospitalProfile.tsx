@@ -59,8 +59,8 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                                     style={{ border: 0 }}
                                     loading="lazy"
                                     allowFullScreen
-                                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDwHEtIv-k5mM8i0HmsLHV_eCTwj6be-Z8&q=${hospital.location.lat},${hospital.location.lng}`}>
-                                </iframe>
+                                    src={`https://www.google.com/maps?q=${hospital.location.lat},${hospital.location.lng}&output=embed`}
+                                />
                              </CardContent>
                         </Card>
                         
@@ -89,7 +89,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                              <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 font-headline"><Tag /> Services Offered</CardTitle>
-                                </CardHeader>
+                                </Header>
                                 <CardContent className="flex flex-wrap gap-2">
                                     {hospital.services.map(service => <Badge key={service}>{service}</Badge>)}
                                 </CardContent>
@@ -97,7 +97,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                              <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 font-headline"><Syringe /> Available Medicines</CardTitle>
-                                </CardHeader>
+                                </Header>
                                 <CardContent className="flex flex-wrap gap-2">
                                      {hospital.medicines.map(med => <Badge variant="outline" key={med}>{med}</Badge>)}
                                 </CardContent>
@@ -135,7 +135,7 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                         <Card>
                             <CardHeader>
                                 <CardTitle className="font-headline">Get Help</CardTitle>
-                            </CardHeader>
+                            </Header>
                             <CardContent className="space-y-3">
                                 <BookRideButtons location={hospital.location} />
                                 <RequestDoctorVisit hospitalName={hospital.name} />
