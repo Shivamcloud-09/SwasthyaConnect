@@ -1,0 +1,93 @@
+
+import type { Hospital } from '@/lib/types';
+
+export const hospitals: Hospital[] = [
+  {
+    id: 1,
+    name: 'City General Hospital',
+    address: '123 Main St, Meditown, 10001',
+    location: { lat: 12.9716, lng: 77.5946 },
+    timings: 'Open 24 Hours',
+    contact: '555-0101',
+    services: ['Emergency Care', 'Cardiology', 'Orthopedics', 'Pediatrics', 'Radiology'],
+    specialties: ['Heart Disease', 'Fractures', 'Child Care', 'X-Ray'],
+    beds: {
+      icu: { total: 20, available: 5 },
+      general: { total: 100, available: 22 },
+    },
+    oxygen: { available: true, lastChecked: 'Today, 8:00 AM' },
+    medicines: ['Aspirin', 'Ibuprofen', 'Paracetamol', 'Amoxicillin'],
+    doctors: [
+      { name: 'Dr. Emily Carter', specialization: 'Cardiologist', availability: 'Mon-Fri, 9am-5pm' },
+      { name: 'Dr. Ben Hauser', specialization: 'Orthopedic Surgeon', availability: 'Tue, Thu 10am-4pm' },
+    ],
+    hygiene: { rating: 4.8, lastSanitized: 'Today, 9:00 AM' },
+    license: 'LIC-CGH-12345',
+  },
+  {
+    id: 2,
+    name: 'Hopewell Community Clinic',
+    address: '456 Oak Ave, Healthburg, 10002',
+    location: { lat: 12.9784, lng: 77.5999 },
+    timings: 'Mon-Sat, 8 AM - 8 PM',
+    contact: '555-0102',
+    services: ['General Checkups', 'Dermatology', 'Neurology', 'Vaccinations'],
+    specialties: ['Skin conditions', 'Migraines', 'Fever', 'Covid-19'],
+    beds: {
+      icu: { total: 5, available: 1 },
+      general: { total: 30, available: 10 },
+    },
+    oxygen: { available: true, lastChecked: 'Today, 7:30 AM' },
+    medicines: ['Loratadine', 'Sumatriptan', 'Ibuprofen'],
+    doctors: [
+      { name: 'Dr. Sarah Jenkins', specialization: 'Dermatologist', availability: 'Mon, Wed, Fri 9am-6pm' },
+      { name: 'Dr. Raj Patel', specialization: 'Neurologist', availability: 'Tue, Thu 8am-4pm' },
+    ],
+    hygiene: { rating: 4.5, lastSanitized: 'Today, 10:00 AM' },
+    license: 'LIC-HCC-67890',
+  },
+  {
+    id: 3,
+    name: 'Serenity Maternity & Wellness',
+    address: '789 Pine Ln, Wellville, 10003',
+    location: { lat: 12.9698, lng: 77.5998 },
+    timings: 'Open 24 Hours',
+    contact: '555-0103',
+    services: ['Maternity Care', 'Gynecology', 'Ultrasound', 'Mental Wellness'],
+    specialties: ['Pregnancy', 'Women\'s Health', 'Depression', 'Anxiety'],
+    beds: {
+      icu: { total: 10, available: 4 },
+      general: { total: 50, available: 15 },
+    },
+    oxygen: { available: false, lastChecked: 'Yesterday, 11:00 PM' },
+    medicines: ['Folic Acid', 'Iron Supplements', 'Sertraline'],
+    doctors: [
+      { name: 'Dr. Olivia Chen', specialization: 'OB/GYN', availability: 'On-call 24/7' },
+      { name: 'Dr. David Lee', specialization: 'Psychiatrist', availability: 'By appointment' },
+    ],
+    hygiene: { rating: 4.9, lastSanitized: 'Today, 11:00 AM' },
+    license: 'LIC-SMW-13579',
+  },
+  {
+    id: 4,
+    name: 'Central Medical Institute',
+    address: '101 Center Plaza, Downtown, 10004',
+    location: { lat: 12.9719, lng: 77.5937 },
+    timings: 'Open 24 Hours',
+    contact: '555-0104',
+    services: ['Trauma Center', 'Oncology', 'Nephrology', 'Internal Medicine'],
+    specialties: ['Cancer', 'Kidney Disease', 'Diabetes', 'Critical Care'],
+    beds: {
+      icu: { total: 50, available: 8 },
+      general: { total: 200, available: 45 },
+    },
+    oxygen: { available: true, lastChecked: 'Today, 9:30 AM' },
+    medicines: ['Chemotherapy drugs', 'Insulin', 'Dialysis solutions'],
+    doctors: [
+      { name: 'Dr. Angela Merkel', specialization: 'Oncologist', availability: 'Mon-Fri 8am-6pm' },
+      { name: 'Dr. Ken Jeong', specialization: 'Nephrologist', availability: 'Mon, Wed 10am-5pm' },
+    ],
+    hygiene: { rating: 4.6, lastSanitized: 'Today, 8:30 AM' },
+    license: 'LIC-CMI-24680',
+  },
+];

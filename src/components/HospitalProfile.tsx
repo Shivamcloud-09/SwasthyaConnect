@@ -1,0 +1,160 @@
+
+"use client";
+
+import { useState, useEffect } from 'react';
+import type { Hospital, Doctor } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { BedDouble, Droplet, Clock, Phone, ShieldCheck, Stethoscope, Tag, Syringe, Star } from 'lucide-react';
+import BookRideButtons from './BookRideButtons';
+import UserRating from './UserRating';
+import RequestDoctorVisit from './RequestDoctorVisit';
+
+type HospitalProfileProps = {
+    hospital: Hospital;
+};
+
+export default function HospitalProfile({ hospital: initialHospital }: HospitalProfileProps) {
+    const [hospital, setHospital] = useState(initialHospital);
+    const [userRating, setUserRating] = useState<number | null>(null);
+
+    useEffect(() => {
+        // Check for admin overrides
+        const storedAdminData = localStorage.getItem(`swasthya-hospital-${initialHospital.id}`);
+        if (storedAdminData) {
+            const updatedData = JSON.parse(storedAdminData);
+            setHospital(prevHospital => ({ ...prevHospital, ...updatedData }));
+        }
+
+        // Check for user rating
+        const storedUserRating = localStorage.getItem(`swasthya-rating-${initialHospital.id}`);
+        if(storedUserRating) {
+            setUserRating(parseInt(storedUserRating, 10));
+        }
+    }, [initialHospital.id]);
+
+    const handleRatingChange = (newRating: number) => {
+        setUserRating(newRating);
+        localStorage.setItem(`swasthya-rating-${initialHospital.id}`, newRating.toString());
+    };
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-2">{hospital.name}</h1>
+                    <p className="text-lg text-muted-foreground">{hospital.address}</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left/Main Column */}
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Map */}
+                        <Card>
+                             <CardContent className="p-0 rounded-lg overflow-hidden h-64 md:h-96">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    allowFullScreen
+                                    src={`https://www.google.com/maps/embed/v1/place?key=DUMMY_KEY&q=${hospital.location.lat},${hospital.location.lng}`}>
+                                </iframe>
+                             </CardContent>
+                        </Card>
+                        
+                        {/* Doctors List */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 font-headline"><Stethoscope /> Available Doctors</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ul className="space-y-4">
+                                    {hospital.doctors.map((doctor: Doctor) => (
+                                        <li key={doctor.name} className="flex items-center justify-between">
+                                            <div>
+                                                <p className="font-semibold">{doctor.name}</p>
+                                                <p className="text-sm text-muted-foreground">{doctor.specialization}</p>
+                                            </div>
+                                            <Badge variant="secondary">{doctor.availability}</Badge>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+
+                        {/* Services & Medicines */}
+                        <div className="grid md:grid-cols-2 gap-8">
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 font-headline"><Tag /> Services Offered</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-wrap gap-2">
+                                    {hospital.services.map(service => <Badge key={service}>{service}</Badge>)}
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 font-headline"><Syringe /> Available Medicines</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-wrap gap-2">
+                                     {hospital.medicines.map(med => <Badge variant="outline" key={med}>{med}</Badge>)}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* Right/Info Column */}
+                    <div className="space-y-6">
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="font-headline">Live Status</CardTitle>
+                             </CardHeader>
+                             <CardContent className="space-y-4">
+                                <InfoItem icon={<BedDouble />} label="General Beds" value={`${hospital.beds.general.available} / ${hospital.beds.general.total} Available`} />
+                                <InfoItem icon={<BedDouble className="text-destructive"/>} label="ICU Beds" value={`${hospital.beds.icu.available} / ${hospital.beds.icu.total} Available`} />
+                                <InfoItem icon={<Droplet className={hospital.oxygen.available ? "text-green-500" : "text-destructive"} />} label="Oxygen" value={hospital.oxygen.available ? 'Available' : 'Unavailable'} />
+                                <Separator />
+                                <InfoItem icon={<Clock />} label="Timings" value={hospital.timings} />
+                                <InfoItem icon={<Phone />} label="Contact" value={<a href={`tel:${hospital.contact}`} className="text-primary hover:underline">{hospital.contact}</a>} />
+                             </CardContent>
+                        </Card>
+                        <Card>
+                             <CardHeader>
+                                <CardTitle className="font-headline">Hygiene & Safety</CardTitle>
+                             </CardHeader>
+                             <CardContent className="space-y-4">
+                                <InfoItem icon={<ShieldCheck className="text-accent" />} label="Cleanliness Rating" value={`${hospital.hygiene.rating.toFixed(1)} / 5.0`} />
+                                <InfoItem icon={<Clock />} label="Last Sanitized" value={hospital.hygiene.lastSanitized} />
+                                <InfoItem icon={<Star className={userRating ? "text-yellow-400" : ""}/>} label="Your Rating" value={<UserRating currentRating={userRating} onRatingChange={handleRatingChange} />} />
+                                <Separator />
+                                <p className="text-xs text-muted-foreground">License: {hospital.license}</p>
+                             </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Get Help</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <BookRideButtons location={hospital.location} />
+                                <RequestDoctorVisit hospitalName={hospital.name} />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const InfoItem = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: React.ReactNode }) => (
+    <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+            <span className="text-primary">{icon}</span>
+            <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        </div>
+        <span className="text-sm font-semibold text-right">{value}</span>
+    </div>
+);
