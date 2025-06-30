@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -170,7 +171,7 @@ export default function HospitalList({ hospitals }: HospitalListProps) {
   }
 
   return (
-    <div>
+    <div suppressHydrationWarning>
       <div className="relative mb-8 max-w-2xl mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <Input
