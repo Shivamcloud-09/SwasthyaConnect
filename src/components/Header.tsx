@@ -26,6 +26,14 @@ const Header = () => {
   const { toast } = useToast();
 
   const handleLogout = async () => {
+    if (!auth) {
+       toast({
+            variant: 'destructive',
+            title: 'Logout Failed',
+            description: 'Firebase is not configured.',
+        });
+        return;
+    }
     try {
         await signOut(auth);
         toast({
@@ -95,7 +103,7 @@ const Header = () => {
                     <HeartHandshake className="h-4 w-4" />
                     <span>Women Helpline (1091)</span>
                   </a>
-                </DropdownMenuItem>
+                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             

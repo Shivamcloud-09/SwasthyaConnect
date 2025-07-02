@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { Hospital } from '@/lib/types';
+import type { Hospital } from '@/data/hospitals';
+import { hospitals as allHospitals } from '@/data/hospitals';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -10,8 +11,6 @@ import { BedDouble, Droplet, Clock, Phone, ShieldCheck, Stethoscope, Tag, Syring
 import BookRideButtons from './BookRideButtons';
 import UserRating from './UserRating';
 import RequestDoctorVisit from './RequestDoctorVisit';
-import { db } from '@/lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 
 type HospitalProfileProps = {
@@ -25,38 +24,27 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
     const [userRating, setUserRating] = useState<number | null>(null);
 
     useEffect(() => {
-        if (!hospitalId) {
-            setIsLoading(false);
+        setIsLoading(true);
+        if (!hospitalId || isNaN(hospitalId)) {
             setError("Invalid hospital ID provided.");
+            setIsLoading(false);
             return;
         };
 
-        setIsLoading(true);
-        const hospitalsCollection = collection(db, 'hospitals');
-        const q = query(hospitalsCollection, where("id", "==", hospitalId));
+        const foundHospital = allHospitals.find(h => h.id === hospitalId);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const hospitalDoc = snapshot.docs[0];
-                const hospitalData = { firestoreId: hospitalDoc.id, ...hospitalDoc.data() } as Hospital;
-                setHospital(hospitalData);
-
-                const storedUserRating = localStorage.getItem(`swasthya-rating-${hospitalData.id}`);
-                if(storedUserRating) {
-                    setUserRating(parseInt(storedUserRating, 10));
-                }
-            } else {
-                setHospital(null);
-                setError(`No hospital found with ID: ${hospitalId}`);
+        if (foundHospital) {
+            setHospital(foundHospital);
+            const storedUserRating = localStorage.getItem(`swasthya-rating-${foundHospital.id}`);
+            if(storedUserRating) {
+                setUserRating(parseInt(storedUserRating, 10));
             }
-            setIsLoading(false);
-        }, (err) => {
-            console.error("Error fetching hospital:", err);
-            setError("Failed to fetch hospital data from the database.");
-            setIsLoading(false);
-        });
-
-        return () => unsubscribe();
+        } else {
+            setHospital(null);
+            setError(`No hospital found with ID: ${hospitalId}`);
+        }
+        
+        setIsLoading(false);
     }, [hospitalId]);
 
     const handleRatingChange = (newRating: number) => {

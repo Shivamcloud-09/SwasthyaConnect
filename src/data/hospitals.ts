@@ -1,3 +1,4 @@
+
 export type Doctor = {
   name: string;
   specialization: string;
@@ -51,3 +52,94 @@ export type NearbyHospital = {
   rating?: number;
   user_ratings_total?: number;
 };
+
+
+export const hospitals: Hospital[] = [
+  {
+    id: 1,
+    name: "City General Hospital",
+    address: "123 Main St, Anytown, USA",
+    location: { lat: 28.6139, lng: 77.2090 }, // Delhi for example
+    timings: "Open 24/7",
+    contact: "555-123-4567",
+    services: ["Emergency Room", "X-Ray", "Pharmacy", "Laboratory"],
+    specialties: ["Cardiology", "Neurology", "Orthopedics"],
+    beds: {
+      general: { total: 200, available: 150 },
+      icu: { total: 40, available: 10 },
+    },
+    oxygen: { available: true, lastChecked: "Today at 2:00 PM" },
+    medicines: ["Aspirin", "Ibuprofen", "Paracetamol", "Amoxicillin"],
+    doctors: [
+      { name: "Dr. John Doe", specialization: "Cardiology", availability: "Mon-Fri, 9am-5pm" },
+      { name: "Dr. Jane Smith", specialization: "Neurology", availability: "On Call" },
+    ],
+    hygiene: { rating: 4.8, lastSanitized: "Today at 1:00 PM" },
+    license: "LIC-12345-XYZ",
+  },
+  {
+    id: 2,
+    name: "Suburban Community Clinic",
+    address: "456 Oak Ave, Suburbia, USA",
+    location: { lat: 28.5355, lng: 77.3910 }, // Noida for example
+    timings: "8am - 10pm Daily",
+    contact: "555-987-6543",
+    services: ["General Check-ups", "Vaccinations", "Pharmacy"],
+    specialties: ["Pediatrics", "Family Medicine"],
+    beds: {
+      general: { total: 50, available: 35 },
+      icu: { total: 5, available: 2 },
+    },
+    oxygen: { available: true, lastChecked: "Today at 11:00 AM" },
+    medicines: ["Paracetamol", "Antacids", "Band-Aids"],
+    doctors: [
+      { name: "Dr. Emily White", specialization: "Pediatrics", availability: "Mon-Sat, 8am-6pm" },
+      { name: "Dr. Michael Green", specialization: "Family Medicine", availability: "Mon, Wed, Fri" },
+    ],
+    hygiene: { rating: 4.5, lastSanitized: "Today at 12:00 PM" },
+    license: "LIC-67890-ABC",
+  },
+   {
+    id: 3,
+    name: "Hope Medical Center",
+    address: "789 Pine Ln, Metro City, USA",
+    location: { lat: 19.0760, lng: 72.8777 }, // Mumbai for example
+    timings: "Open 24/7",
+    contact: "555-234-5678",
+    services: ["Oncology", "Radiology", "Surgical Services"],
+    specialties: ["Cancer Treatment", "Diagnostic Imaging"],
+    beds: {
+      general: { total: 300, available: 210 },
+      icu: { total: 60, available: 15 },
+    },
+    oxygen: { available: false, lastChecked: "Today at 9:00 AM" },
+    medicines: ["Chemotherapy Drugs", "Pain Relievers", "Antibiotics"],
+    doctors: [
+        { name: "Dr. Robert Brown", specialization: "Oncology", availability: "By Appointment" },
+        { name: "Dr. Sarah Davis", specialization: "Radiology", availability: "Mon-Fri, 8am-4pm" },
+    ],
+    hygiene: { rating: 4.9, lastSanitized: "Today at 3:00 PM" },
+    license: "LIC-54321-DEF",
+  },
+   {
+    id: 4,
+    name: "Riverside Recovery Institute",
+    address: "101 River Rd, Greenfield, USA",
+    location: { lat: 12.9716, lng: 77.5946 }, // Bengaluru for example
+    timings: "9am - 6pm Weekdays",
+    contact: "555-876-5432",
+    services: ["Physical Therapy", "Rehabilitation", "Mental Health Support"],
+    specialties: ["Sports Injury", "Post-operative Care"],
+    beds: {
+      general: { total: 100, available: 80 },
+      icu: { total: 0, available: 0 },
+    },
+    oxygen: { available: true, lastChecked: "Yesterday at 5:00 PM" },
+    medicines: ["Pain Ointments", "Muscle Relaxants"],
+    doctors: [
+        { name: "Dr. David Wilson", specialization: "Physical Therapy", availability: "Mon-Fri, 9am-6pm" },
+    ],
+    hygiene: { rating: 4.3, lastSanitized: "Today at 10:00 AM" },
+    license: "LIC-98765-GHI",
+  },
+];

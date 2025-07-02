@@ -20,6 +20,7 @@ export default function AdminSignupForm() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [hospitalName, setHospitalName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const isFirebaseConfigured = !!auth;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,7 +35,7 @@ export default function AdminSignupForm() {
         setIsLoading(true);
         try {
             // In a real app, you'd associate this user with the hospital in Firestore
-            await createUserWithEmailAndPassword(auth, email, password);
+            await createUserWithEmailAndPassword(auth!, email, password);
             toast({
                 title: 'Admin Account Created!',
                 description: 'You can now log in with your new credentials.',
@@ -83,9 +84,14 @@ export default function AdminSignupForm() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
                         {isLoading ? 'Creating Account...' : 'Sign Up'}
                     </Button>
+                    {!isFirebaseConfigured && (
+                        <p className="mt-4 text-center text-sm text-destructive">
+                            Firebase is not configured. Admin sign up is disabled.
+                        </p>
+                    )}
                     <div className="text-center text-sm">
                         Already have an account?{" "}
                         <Link href="/admin/login" className="underline">

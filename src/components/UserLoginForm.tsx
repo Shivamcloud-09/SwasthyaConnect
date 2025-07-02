@@ -21,12 +21,13 @@ export default function UserLoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const isFirebaseConfigured = !!auth;
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth!, email, password);
             toast({
                 title: 'Login Successful',
                 description: 'Welcome back!',
@@ -53,7 +54,7 @@ export default function UserLoginForm() {
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
         try {
-            await signInWithPopup(auth, googleProvider);
+            await signInWithPopup(auth!, googleProvider!);
             toast({
                 title: 'Login Successful',
                 description: 'Welcome back!',
@@ -94,7 +95,7 @@ export default function UserLoginForm() {
                     <Input id="password-user" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
             </div>
-            <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+            <Button type="submit" className="w-full mt-6" disabled={isLoading || !isFirebaseConfigured}>
                 {isLoading ? 'Signing In...' : 'Sign in'}
             </Button>
         </form>
@@ -107,9 +108,15 @@ export default function UserLoginForm() {
                 <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
         </div>
-        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+        <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading || !isFirebaseConfigured}>
            {isLoading ? 'Please wait...' : <><GoogleIcon /><span className="ml-2">Sign in with Google</span></>}
         </Button>
+
+        {!isFirebaseConfigured && (
+            <p className="mt-4 text-center text-sm text-destructive">
+                Firebase is not configured. Authentication is disabled.
+            </p>
+        )}
         
         <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}

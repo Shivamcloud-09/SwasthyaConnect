@@ -19,6 +19,7 @@ export default function UserSignupForm() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const isFirebaseConfigured = !!auth;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,7 +33,7 @@ export default function UserSignupForm() {
         }
         setIsLoading(true);
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
+            await createUserWithEmailAndPassword(auth!, email, password);
             toast({
                 title: 'Account Created!',
                 description: 'You have been successfully signed up.',
@@ -77,9 +78,14 @@ export default function UserSignupForm() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
                         {isLoading ? 'Creating Account...' : 'Sign Up'}
                     </Button>
+                     {!isFirebaseConfigured && (
+                        <p className="mt-4 text-center text-sm text-destructive">
+                            Firebase is not configured. Sign up is disabled.
+                        </p>
+                    )}
                     <div className="text-center text-sm">
                         Already have an account?{" "}
                         <Link href="/login" className="underline">
