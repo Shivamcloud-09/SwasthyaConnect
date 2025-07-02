@@ -33,9 +33,12 @@ export default function UserLoginForm() {
             });
             router.push('/');
         } catch (error: any) {
+            console.error("Email/Password Login Error:", error);
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
                 description = 'Invalid email or password. Please try again.';
+            } else {
+                description = `An unexpected error occurred: ${error.message}`;
             }
             toast({
                 variant: 'destructive',
@@ -57,13 +60,16 @@ export default function UserLoginForm() {
             });
             router.push('/');
         } catch (error: any) {
+            console.error("Google Sign-In Error:", error);
             let description = 'Could not sign in with Google. Please try again.';
             if (error.code === 'auth/popup-closed-by-user') {
                 description = 'The sign-in popup was closed before completing. Please try again.';
             } else if (error.code === 'auth/account-exists-with-different-credential') {
                 description = 'An account already exists with the same email address but different sign-in credentials.';
             } else if (error.code === 'auth/operation-not-allowed') {
-                description = 'Google Sign-In is not enabled for this project. Please contact the administrator.';
+                description = 'Google Sign-In is not enabled for this project. Please enable it in your Firebase console.';
+            } else {
+                description = `An unexpected error occurred: ${error.message}`;
             }
             toast({
                 variant: 'destructive',
