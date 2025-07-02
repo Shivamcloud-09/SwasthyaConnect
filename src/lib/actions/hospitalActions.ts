@@ -41,13 +41,22 @@ export async function geocodeAddress(address: GeocodeAddressInput): Promise<Geoc
       },
     });
     
+    if (!response.ok) {
+        throw new Error(`Geocoding API request failed with status: ${response.status}`);
+    }
+
     const data = await response.json();
 
-    if (!response.ok || !data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       throw new Error(`Could not find coordinates for the address: ${address}`);
     }
     
     const result = data[0];
+
+    // Add robust checking for required fields
+    if (!result || typeof result.lat === 'undefined' || typeof result.lon === 'undefined' || typeof result.display_name === 'undefined') {
+        throw new Error('Incomplete location data received from geocoding service.');
+    }
 
     // Validate the output before returning
     const parsedResult = GeocodeAddressOutputSchema.parse({
@@ -60,7 +69,10 @@ export async function geocodeAddress(address: GeocodeAddressInput): Promise<Geoc
 
   } catch (error) {
     console.error('Failed to fetch from Nominatim API for geocoding:', error);
-    throw new Error('Geocoding service failed.');
+    if (error instanceof Error) {
+        throw new Error(`Geocoding service failed: ${error.message}`);
+    }
+    throw new Error('An unknown geocoding error occurred.');
   }
 }
 
@@ -92,31 +104,48 @@ export async function findNearbyHospitals({ lat, lng }: NearbyHospitalsInput): P
       },
     });
     
-    const data = await response.json();
-
     if (!response.ok) {
-      const errorMessage = data.error?.message || `API returned status: ${response.status}`;
-      console.error('Nominatim API error:', errorMessage, data);
+      const errorData = await response.text();
+      const errorMessage = `API returned status: ${response.status}. Response: ${errorData}`;
+      console.error('Nominatim API error:', errorMessage);
       throw new Error(`Nominatim API Error: ${errorMessage}`);
     }
     
-    // Map the OSM response to our existing `NearbyHospital` type.
-    const hospitals = (data || []).map((place: any): NearbyHospital => ({
-      place_id: place.osm_type + place.osm_id.toString(), // create a unique string ID
-      name: place.display_name.split(',')[0], // Extract the primary name from the display_name
-      address: place.display_name,
-      location: {
-        lat: parseFloat(place.lat),
-        lng: parseFloat(place.lon),
-      },
-      // OSM does not provide ratings, so these fields will be undefined
-      rating: undefined,
-      user_ratings_total: undefined,
-    })).filter((h:any) => h.name); // Ensure we have a name
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+        throw new Error('Invalid data format received from Nominatim API.');
+    }
+    
+    // Map the OSM response to our existing `NearbyHospital` type with robust checks.
+    const hospitals: NearbyHospital[] = data
+      .map((place: any): NearbyHospital | null => {
+        if (!place || !place.osm_id || !place.display_name || !place.lat || !place.lon) {
+          return null;
+        }
+
+        const name = typeof place.display_name === 'string' ? place.display_name.split(',')[0] : 'Unnamed Location';
+        
+        return {
+          place_id: `${place.osm_type || 'node'}${place.osm_id}`,
+          name,
+          address: place.display_name,
+          location: {
+            lat: parseFloat(place.lat),
+            lng: parseFloat(place.lon),
+          },
+          rating: undefined,
+          user_ratings_total: undefined,
+        };
+      })
+      .filter((h): h is NearbyHospital => h !== null && !!h.name);
 
     return NearbyHospitalsOutputSchema.parse(hospitals);
   } catch (error) {
     console.error('Failed to fetch from Nominatim API:', error);
-    throw new Error('Failed to fetch nearby hospitals.');
+    if (error instanceof Error) {
+        throw new Error(`Failed to fetch nearby hospitals: ${error.message}`);
+    }
+    throw new Error('An unknown error occurred while fetching nearby hospitals.');
   }
 }
