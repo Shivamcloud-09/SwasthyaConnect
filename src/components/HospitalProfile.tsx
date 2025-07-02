@@ -18,6 +18,16 @@ type HospitalProfileProps = {
     hospitalId: number;
 };
 
+// A dedicated component for the "Not Found" state for clarity.
+const HospitalNotFound = () => (
+    <div className="container mx-auto px-4 py-8 text-center">
+        <ServerCrash className="h-16 w-16 mx-auto text-destructive mb-4" />
+        <h1 className="text-3xl font-bold text-destructive mb-2">Hospital Not Found</h1>
+        <p className="text-muted-foreground">The hospital you are looking for does not exist or could not be loaded.</p>
+    </div>
+);
+
+
 export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
     const [hospital, setHospital] = useState<Hospital | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +37,9 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
 
     useEffect(() => {
         setIsLoading(true);
-        if (!hospitalId || isNaN(hospitalId)) {
+        setError(null); // Reset error on new ID
+        
+        if (isNaN(hospitalId)) {
             setError("Invalid hospital ID provided.");
             setIsLoading(false);
             return;
@@ -44,7 +56,6 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
             }
         } else {
             setHospital(null);
-            setError(`No hospital found with ID: ${hospitalId}`);
         }
         
         setIsLoading(false);
@@ -61,15 +72,11 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
     }
 
     if (error || !hospital) {
-        return (
-            <div className="container mx-auto px-4 py-8 text-center">
-                 <ServerCrash className="h-16 w-16 mx-auto text-destructive mb-4" />
-                 <h1 className="text-3xl font-bold text-destructive mb-2">Could Not Load Hospital</h1>
-                 <p className="text-muted-foreground">{error || "The requested hospital could not be found."}</p>
-            </div>
-        )
+        return <HospitalNotFound />;
     }
 
+    // With the guard above, 'hospital' is guaranteed to be non-null here.
+    // We now use optional chaining for robustness against incomplete data.
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
@@ -83,7 +90,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                 <div data-ai-hint="hospital building" className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
                     <Image
                         src={imgSrc}
-                        alt={hospital.name}
+                        alt={hospital.name || 'Hospital Image'}
                         fill
                         className="object-cover"
                         onError={() => setImgSrc('https://placehold.co/600x400.png')}
@@ -96,14 +103,16 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                         {/* Map */}
                         <Card>
                              <CardContent className="p-0 rounded-lg overflow-hidden h-64 md:h-96">
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    style={{ border: 0 }}
-                                    loading="lazy"
-                                    allowFullScreen
-                                    src={`https://www.google.com/maps?q=${hospital.location.lat},${hospital.location.lng}&output=embed`}
-                                ></iframe>
+                                {hospital.location && (
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        style={{ border: 0 }}
+                                        loading="lazy"
+                                        allowFullScreen
+                                        src={`https://www.google.com/maps?q=${hospital.location.lat},${hospital.location.lng}&output=embed`}
+                                    ></iframe>
+                                )}
                              </CardContent>
                         </Card>
                         
@@ -114,7 +123,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                             </CardHeader>
                             <CardContent>
                                 <ul className="space-y-4">
-                                    {hospital.doctors.map((doctor) => (
+                                    {hospital.doctors?.map((doctor) => (
                                         <li key={doctor.name} className="flex items-center justify-between">
                                             <div>
                                                 <p className="font-semibold">{doctor.name}</p>
@@ -134,7 +143,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                                     <CardTitle className="flex items-center gap-2 font-headline"><Tag /> Services Offered</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-wrap gap-2">
-                                    {hospital.services.map(service => <Badge key={service}>{service}</Badge>)}
+                                    {hospital.services?.map(service => <Badge key={service}>{service}</Badge>)}
                                 </CardContent>
                             </Card>
                              <Card>
@@ -142,7 +151,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                                     <CardTitle className="flex items-center gap-2 font-headline"><Syringe /> Available Medicines</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-wrap gap-2">
-                                     {hospital.medicines.map(med => <Badge variant="outline" key={med}>{med}</Badge>)}
+                                     {hospital.medicines?.map(med => <Badge variant="outline" key={med}>{med}</Badge>)}
                                 </CardContent>
                             </Card>
                         </div>
@@ -155,9 +164,9 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                                 <CardTitle className="font-headline">Live Status</CardTitle>
                              </CardHeader>
                              <CardContent className="space-y-4">
-                                <InfoItem icon={<BedDouble />} label="General Beds" value={`${hospital.beds.general.available} / ${hospital.beds.general.total} Available`} />
-                                <InfoItem icon={<BedDouble className="text-destructive"/>} label="ICU Beds" value={`${hospital.beds.icu.available} / ${hospital.beds.icu.total} Available`} />
-                                <InfoItem icon={<Droplet className={hospital.oxygen.available ? "text-green-500" : "text-destructive"} />} label="Oxygen" value={hospital.oxygen.available ? 'Available' : 'Unavailable'} />
+                                <InfoItem icon={<BedDouble />} label="General Beds" value={`${hospital.beds?.general?.available ?? 'N/A'} / ${hospital.beds?.general?.total ?? 'N/A'} Available`} />
+                                <InfoItem icon={<BedDouble className="text-destructive"/>} label="ICU Beds" value={`${hospital.beds?.icu?.available ?? 'N/A'} / ${hospital.beds?.icu?.total ?? 'N/A'} Available`} />
+                                <InfoItem icon={<Droplet className={hospital.oxygen?.available ? "text-green-500" : "text-destructive"} />} label="Oxygen" value={hospital.oxygen?.available ? 'Available' : 'Unavailable'} />
                                 <Separator />
                                 <InfoItem icon={<Clock />} label="Timings" value={hospital.timings} />
                                 <InfoItem icon={<Phone />} label="Contact" value={<a href={`tel:${hospital.contact}`} className="text-primary hover:underline">{hospital.contact}</a>} />
@@ -168,11 +177,11 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                                 <CardTitle className="font-headline">Hygiene & Safety</CardTitle>
                              </CardHeader>
                              <CardContent className="space-y-4">
-                                <InfoItem icon={<ShieldCheck className="text-accent" />} label="Cleanliness Rating" value={`${hospital.hygiene.rating.toFixed(1)} / 5.0`} />
-                                <InfoItem icon={<Clock />} label="Last Sanitized" value={hospital.hygiene.lastSanitized} />
+                                <InfoItem icon={<ShieldCheck className="text-accent" />} label="Cleanliness Rating" value={`${hospital.hygiene?.rating?.toFixed(1) ?? 'N/A'} / 5.0`} />
+                                <InfoItem icon={<Clock />} label="Last Sanitized" value={hospital.hygiene?.lastSanitized ?? 'N/A'} />
                                 <InfoItem icon={<Star className={userRating ? "text-yellow-400" : ""}/>} label="Your Rating" value={<UserRating currentRating={userRating} onRatingChange={handleRatingChange} />} />
                                 <Separator />
-                                <p className="text-xs text-muted-foreground">License: {hospital.license}</p>
+                                <p className="text-xs text-muted-foreground">License: {hospital.license ?? 'N/A'}</p>
                              </CardContent>
                         </Card>
                         <Card>
@@ -180,8 +189,8 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                                 <CardTitle className="font-headline">Get Help</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <BookRideButtons location={hospital.location} />
-                                <RequestDoctorVisit hospitalName={hospital.name} />
+                                {hospital.location && <BookRideButtons location={hospital.location} />}
+                                {hospital.name && <RequestDoctorVisit hospitalName={hospital.name} />}
                             </CardContent>
                         </Card>
                     </div>
