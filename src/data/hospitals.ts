@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+// Schemas for geocoding an address string
+export const GeocodeAddressInputSchema = z.string().describe('An address, city, or place name to search for.');
+export type GeocodeAddressInput = z.infer<typeof GeocodeAddressInputSchema>;
+
+export const GeocodeAddressOutputSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+  displayName: z.string(),
+});
+export type GeocodeAddressOutput = z.infer<typeof GeocodeAddressOutputSchema>;
+
 export const NearbyHospitalsInputSchema = z.object({
   lat: z.number().describe('Latitude of the user location.'),
   lng: z.number().describe('Longitude of the user location.'),

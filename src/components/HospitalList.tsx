@@ -5,12 +5,23 @@ import type { Hospital, NearbyHospital } from '@/data/hospitals';
 import { hospitals as curatedHospitals } from '@/data/hospitals';
 import { Input } from '@/components/ui/input';
 import HospitalCard from '@/components/HospitalCard';
-import { Search, ServerCrash, LoaderCircle, MapPin, List } from 'lucide-react';
+import { Search, ServerCrash, LoaderCircle, MapPin, List, Edit } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
+import { geocodeAddress } from '@/ai/flows/geocodeFlow';
 import { getDistance } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Label } from './ui/label';
 
 type HospitalToShow = Hospital | NearbyHospital;
 
@@ -19,15 +30,45 @@ export default function HospitalList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [allHospitals, setAllHospitals] = useState<HospitalToShow[]>(curatedHospitals);
   const [isSearchingNearby, setIsSearchingNearby] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const { toast } = useToast();
+  
+  // State for manual entry dialog
+  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false);
+  const [manualLocation, setManualLocation] = useState('');
+
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+  
+  const searchForHospitals = async (lat: number, lng: number) => {
+    // This is called by both GPS and manual search
+    setIsSearchingNearby(true);
+    setLocationError(null);
+    setUserLocation({ lat, lng });
+
+    try {
+        const nearby = await findNearbyHospitals({ lat, lng });
+        setAllHospitals(nearby);
+    } catch (error) {
+        console.error("Error fetching nearby hospitals:", error);
+        const errorMsg = 'Could not fetch nearby hospitals. Please try again later.';
+        setLocationError(errorMsg);
+        toast({
+            variant: 'destructive',
+            title: 'Search Failed',
+            description: errorMsg,
+        });
+    } finally {
+        setIsSearchingNearby(false);
+    }
+  }
 
   const handleFindNearby = () => {
+    // This uses the browser's GPS
     setIsSearchingNearby(true);
     setLocationError(null);
     setUserLocation(null);
@@ -41,24 +82,9 @@ export default function HospitalList() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      (position) => {
         const { latitude: lat, longitude: lng } = position.coords;
-        setUserLocation({ lat, lng });
-        try {
-          const nearby = await findNearbyHospitals({ lat, lng });
-          setAllHospitals(nearby);
-        } catch (error) {
-          console.error("Error fetching nearby hospitals:", error);
-          const errorMsg = 'Could not fetch nearby hospitals. Please try again later.';
-          setLocationError(errorMsg);
-          toast({
-            variant: 'destructive',
-            title: 'Search Failed',
-            description: errorMsg,
-          });
-        } finally {
-          setIsSearchingNearby(false);
-        }
+        searchForHospitals(lat, lng);
       },
       (error) => {
         let message = 'An unknown error occurred.';
@@ -80,6 +106,33 @@ export default function HospitalList() {
     );
   };
   
+  const handleManualSearch = async (e: React.FormEvent) => {
+    // This geocodes a user-entered address string
+    e.preventDefault();
+    if (!manualLocation) return;
+
+    setIsGeocoding(true);
+    try {
+        const result = await geocodeAddress(manualLocation);
+        toast({
+            title: "Location Found!",
+            description: `Searching for hospitals near ${result.displayName}.`
+        });
+        await searchForHospitals(result.lat, result.lng);
+        setIsManualEntryOpen(false); // Close dialog on success
+        setManualLocation(''); // Clear input
+    } catch (error: any) {
+        console.error("Geocoding Error:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Location Not Found',
+            description: `Could not find the location "${manualLocation}". Please try a different search term.`,
+        });
+    } finally {
+        setIsGeocoding(false);
+    }
+  }
+
   const handleShowAll = () => {
       setAllHospitals(curatedHospitals);
       setUserLocation(null);
@@ -120,6 +173,7 @@ export default function HospitalList() {
             <div className="flex flex-wrap gap-4 items-center justify-center mb-8">
                 <Skeleton className="h-10 w-48" />
                 <Skeleton className="h-10 w-44" />
+                <Skeleton className="h-10 w-44" />
             </div>
             <div className="relative mb-8 max-w-2xl mx-auto">
                 <Skeleton className="h-14 w-full rounded-full" />
@@ -133,17 +187,59 @@ export default function HospitalList() {
     )
   }
 
+  const isLoading = isSearchingNearby || isGeocoding;
+
   return (
     <div>
         <div className="flex flex-wrap gap-4 items-center justify-center mb-8">
-             <Button onClick={handleFindNearby} disabled={isSearchingNearby}>
+             <Button onClick={handleFindNearby} disabled={isLoading}>
                 {isSearchingNearby ? (
-                    <><LoaderCircle className="animate-spin" /> Searching...</>
+                    <><LoaderCircle className="animate-spin" /> Using GPS...</>
                 ) : (
-                    <><MapPin /> Find Nearby Hospitals</>
+                    <><MapPin /> Use My Location</>
                 )}
             </Button>
-            <Button onClick={handleShowAll} variant="outline">
+            
+            <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" disabled={isLoading}>
+                    <Edit /> Enter Location Manually
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Enter Location</DialogTitle>
+                  <DialogDescription>
+                    Type a city, neighborhood, or address to find nearby hospitals.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleManualSearch}>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="location" className="text-right">
+                            Location
+                            </Label>
+                            <Input
+                                id="location"
+                                value={manualLocation}
+                                onChange={(e) => setManualLocation(e.target.value)}
+                                className="col-span-3"
+                                placeholder="e.g., 'New Delhi' or 'Connaught Place'"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                    <Button type="submit" disabled={isGeocoding}>
+                        {isGeocoding ? (
+                             <><LoaderCircle className="animate-spin" /> Searching...</>
+                        ) : "Find Hospitals"}
+                    </Button>
+                    </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Button onClick={handleShowAll} variant="outline" disabled={isLoading}>
                 <List /> Show Curated List
             </Button>
         </div>
@@ -164,7 +260,13 @@ export default function HospitalList() {
             </div>
         )}
 
-      {sortedHospitals.length > 0 ? (
+      {isLoading && sortedHospitals.length === 0 ? (
+            <div className="text-center py-16">
+                 <LoaderCircle className="h-12 w-12 mx-auto text-primary animate-spin mb-4" />
+                 <h2 className="text-2xl font-semibold mb-2 font-headline">Finding Hospitals...</h2>
+                 <p className="text-muted-foreground">Please wait while we search for hospitals near your location.</p>
+            </div>
+      ) : sortedHospitals.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedHospitals.map(hospital => (
             <HospitalCard
