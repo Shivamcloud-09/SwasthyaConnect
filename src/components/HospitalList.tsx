@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Hospital, NearbyHospital } from '@/lib/types';
 import { getDistance } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Search, LoaderCircle, AlertTriangle, List, MapPin, ServerCrash } from '
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
+import { Skeleton } from './ui/skeleton';
 
 type HospitalListProps = {
   staticHospitals: Hospital[];
@@ -18,6 +19,7 @@ type HospitalListProps = {
 type HospitalWithDistance = (Hospital | NearbyHospital) & { distance?: number };
 
 export default function HospitalList({ staticHospitals }: HospitalListProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -27,6 +29,9 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
   const [apiHospitals, setApiHospitals] = useState<NearbyHospital[]>([]);
   const [isFetchingApi, setIsFetchingApi] = useState(false);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleFindNearby = () => {
     setIsLocating(true);
@@ -49,25 +54,8 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
                 } catch (error) {
                     console.error("API call to find hospitals failed:", error);
                     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-                     if (errorMessage.includes("has not been used in project") || errorMessage.includes("is disabled")) {
-                        const projectIdMatch = errorMessage.match(/project(?:s\/|\s)(\d+)/);
-                        const projectId = projectIdMatch ? projectIdMatch[1] : null;
-                        const enableApiUrl = projectId
-                            ? `https://console.developers.google.com/apis/api/places.googleapis.com/overview?project=${projectId}`
-                            : 'https://console.cloud.google.com/apis/library/places.googleapis.com';
-                        
-                        setLocationError(
-                            <>
-                                <span>Google Places API Error: The API must be enabled.</span>
-                                <a href={enableApiUrl} target="_blank" rel="noopener noreferrer" className="font-bold underline ml-1 hover:text-destructive/80">
-                                    Click here to fix it.
-                                </a>
-                            </>
-                        );
-                    } else {
-                        setLocationError(`Could not fetch nearby hospitals. Reason: ${errorMessage}`);
-                    }
-                    setViewMode('all');
+                    setLocationError(`Could not fetch nearby hospitals. Please try again later. Reason: ${errorMessage}`);
+                    setViewMode('all'); // Revert to a safe view on error
                 } finally {
                     setIsFetchingApi(false);
                 }
@@ -129,9 +117,8 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
 
   }, [searchTerm, staticHospitals, apiHospitals, userLocation, viewMode]);
 
-
   const renderToggleButton = () => {
-    if (viewMode === 'prompt' || isLocating) return null;
+    if (viewMode === 'prompt' || isLocating || isFetchingApi) return null;
 
     return (
         <Button variant="outline" onClick={() => setViewMode(viewMode === 'all' ? 'nearby' : 'all')}>
@@ -150,7 +137,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
             <div className="text-center py-16 max-w-lg mx-auto bg-card border p-8 rounded-lg shadow-sm">
               <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
               <h2 className="text-2xl font-semibold mb-2 font-headline">Find Care Near You</h2>
-              <p className="text-muted-foreground mb-6">Use live search to find hospitals near you via Google, or view our curated list of hospitals.</p>
+              <p className="text-muted-foreground mb-6">Use live search to find hospitals near you via OpenStreetMap, or view our curated list of hospitals.</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 <Button size="lg" onClick={handleFindNearby}>
                     Find Nearby
@@ -168,7 +155,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
             <div className="flex justify-center items-center py-16 flex-col gap-4">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-lg text-muted-foreground">
-                    {isLocating ? "Getting your location..." : "Searching for nearby hospitals via Google..."}
+                    {isLocating ? "Getting your location..." : "Searching for nearby hospitals..."}
                 </p>
             </div>
         );
@@ -195,7 +182,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
             <h2 className="text-2xl font-semibold mb-2 font-headline">No Hospitals Found</h2>
             <p className="text-muted-foreground mb-6">
                 {viewMode === 'nearby' 
-                ? "We couldn't find any hospitals nearby using Google Places API. This could be due to your location or an API configuration issue."
+                ? "We couldn't find any hospitals nearby using OpenStreetMap. This could be due to your location or a temporary API issue."
                 : "No hospitals found matching your search in our curated list."
                 }
             </p>
@@ -204,8 +191,24 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
     );
   }
 
+  // To prevent hydration errors, we ensure the component is mounted on the client before rendering fully.
+  if (!isMounted) {
+    return (
+        <div>
+            <div className="relative mb-8 max-w-2xl mx-auto">
+                <Skeleton className="h-14 w-full rounded-full" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Skeleton className="h-[300px] w-full" />
+                <Skeleton className="h-[300px] w-full" />
+                <Skeleton className="h-[300px] w-full" />
+            </div>
+        </div>
+    )
+  }
+
   return (
-    <div suppressHydrationWarning>
+    <div>
       <div className="relative mb-8 max-w-2xl mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <Input

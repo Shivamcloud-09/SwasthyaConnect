@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -33,7 +32,7 @@ export default function HospitalCard({ hospital: initialHospital, distance }: Ho
     }, [initialHospital]);
 
   if (isNearbyHospital(hospital)) {
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.place_id}`;
+    const osmUrl = `https://www.openstreetmap.org/?mlat=${hospital.location.lat}&mlon=${hospital.location.lng}#map=16/${hospital.location.lat}/${hospital.location.lng}`;
     return (
         <Card className="flex flex-col h-full hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
@@ -51,19 +50,12 @@ export default function HospitalCard({ hospital: initialHospital, distance }: Ho
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                {hospital.rating && (
-                    <div className="flex items-center gap-2">
-                       <Badge variant="secondary" className="flex items-center gap-1.5">
-                            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> Google Rating: {hospital.rating.toFixed(1)} ({hospital.user_ratings_total})
-                       </Badge>
-                    </div>
-                )}
-                <p className="text-sm text-muted-foreground">Live data such as bed availability is not available for this hospital. Details are provided by Google.</p>
+                <p className="text-sm text-muted-foreground">Details for this hospital are provided by OpenStreetMap. Live data like bed availability is not available.</p>
             </CardContent>
             <CardFooter>
                 <Button asChild className="w-full">
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
-                        View on Google Maps <ArrowRight className="ml-2 h-4 w-4" />
+                    <a href={osmUrl} target="_blank" rel="noopener noreferrer">
+                        View on OpenStreetMap <ArrowRight className="ml-2 h-4 w-4" />
                     </a>
                 </Button>
             </CardFooter>
@@ -94,7 +86,7 @@ export default function HospitalCard({ hospital: initialHospital, distance }: Ho
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
             <div data-ai-hint="hospital building" className="relative h-40 w-full rounded-md overflow-hidden">
-                 <Image src={`https://placehold.co/600x400.png`} alt={name} layout="fill" objectFit="cover" />
+                 <Image src={`https://placehold.co/600x400.png`} alt={name} fill style={{ objectFit: 'cover' }} />
             </div>
             <div className="flex flex-wrap gap-2">
                 <Badge variant={hygieneVariant} className="flex items-center gap-1.5">
