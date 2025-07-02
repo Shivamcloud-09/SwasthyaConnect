@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 import type { Hospital, NearbyHospital } from '@/data/hospitals';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,8 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
     );
   }
 
-  const { id, name, address, hygiene, beds, oxygen } = hospital;
+  const { id, name, address, hygiene, beds, oxygen, imageUrl } = hospital;
+  const [imgSrc, setImgSrc] = useState(imageUrl);
   
   const hygieneVariant = hygiene.rating >= 4.7 ? 'default' : hygiene.rating >= 4.0 ? 'secondary' : 'destructive';
   const hygieneText = hygiene.rating >= 4.7 ? 'High Hygiene' : hygiene.rating >= 4.0 ? 'Good Hygiene' : 'Needs Improvement';
@@ -77,7 +79,13 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
             <div data-ai-hint="hospital building" className="relative h-40 w-full rounded-md overflow-hidden">
-                 <Image src={`https://placehold.co/600x400.png`} alt={name} fill style={{ objectFit: 'cover' }} />
+                 <Image 
+                    src={imgSrc} 
+                    alt={name} 
+                    fill 
+                    style={{ objectFit: 'cover' }} 
+                    onError={() => setImgSrc('https://placehold.co/600x400.png')}
+                 />
             </div>
             <div className="flex flex-wrap gap-2">
                 <Badge variant={hygieneVariant} className="flex items-center gap-1.5">

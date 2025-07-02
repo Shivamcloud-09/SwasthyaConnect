@@ -28,6 +28,7 @@ export type Hospital = {
   firestoreId?: string; // Document ID from Firestore
   name: string;
   address: string;
+  imageUrl: string;
   location: {
     lat: number;
     lng: number;
@@ -91,6 +92,7 @@ export const hospitals: Hospital[] = [
     id: 1,
     name: "City General Hospital",
     address: "123 Main St, Anytown, USA",
+    imageUrl: "https://placehold.co/600x400.png",
     location: { lat: 28.6139, lng: 77.2090 }, // Delhi for example
     timings: "Open 24/7",
     contact: "555-123-4567",
@@ -113,6 +115,7 @@ export const hospitals: Hospital[] = [
     id: 2,
     name: "Suburban Community Clinic",
     address: "456 Oak Ave, Suburbia, USA",
+    imageUrl: "https://placehold.co/600x400.png",
     location: { lat: 28.5355, lng: 77.3910 }, // Noida for example
     timings: "8am - 10pm Daily",
     contact: "555-987-6543",
@@ -135,6 +138,7 @@ export const hospitals: Hospital[] = [
     id: 3,
     name: "Hope Medical Center",
     address: "789 Pine Ln, Metro City, USA",
+    imageUrl: "https://placehold.co/600x400.png",
     location: { lat: 19.0760, lng: 72.8777 }, // Mumbai for example
     timings: "Open 24/7",
     contact: "555-234-5678",
@@ -157,6 +161,7 @@ export const hospitals: Hospital[] = [
     id: 4,
     name: "Riverside Recovery Institute",
     address: "101 River Rd, Greenfield, USA",
+    imageUrl: "https://placehold.co/600x400.png",
     location: { lat: 12.9716, lng: 77.5946 }, // Bengaluru for example
     timings: "9am - 6pm Weekdays",
     contact: "555-876-5432",
