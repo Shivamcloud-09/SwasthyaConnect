@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,18 +35,26 @@ export default function AdminLoginForm() {
     };
 
   return (
-    <form onSubmit={handleLogin} className="pt-6">
-        <div className="grid gap-4">
-            <div className="grid gap-2">
-                <Label htmlFor="username-admin">Username</Label>
-                <Input id="username-admin" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="admin" />
+    <div className="pt-6">
+        <form onSubmit={handleLogin}>
+            <div className="grid gap-4">
+                <div className="grid gap-2">
+                    <Label htmlFor="username-admin">Username</Label>
+                    <Input id="username-admin" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="admin" />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="password-admin">Password</Label>
+                    <Input id="password-admin" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="password" />
+                </div>
             </div>
-            <div className="grid gap-2">
-                <Label htmlFor="password-admin">Password</Label>
-                <Input id="password-admin" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="password" />
-            </div>
+            <Button type="submit" className="w-full mt-6">Sign in</Button>
+        </form>
+         <div className="mt-4 text-center text-sm">
+            Don&apos;t have an admin account?{" "}
+            <Link href="/admin/signup" className="underline">
+                Create one
+            </Link>
         </div>
-        <Button type="submit" className="w-full mt-6">Sign in</Button>
-    </form>
+    </div>
   )
 }
