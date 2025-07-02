@@ -1,3 +1,10 @@
+import { z } from 'zod';
+
+export const NearbyHospitalsInputSchema = z.object({
+  lat: z.number().describe('Latitude of the user location.'),
+  lng: z.number().describe('Longitude of the user location.'),
+});
+export type NearbyHospitalsInput = z.infer<typeof NearbyHospitalsInputSchema>;
 
 export type Doctor = {
   name: string;

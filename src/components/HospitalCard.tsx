@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -39,6 +38,9 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
+                 <div data-ai-hint="map location" className="relative h-40 w-full rounded-md overflow-hidden">
+                    <Image src={`https://placehold.co/600x400.png`} alt={hospital.name} fill style={{ objectFit: 'cover' }} />
+                </div>
                 <p className="text-sm text-muted-foreground">Details for this hospital are provided by OpenStreetMap. Live data like bed availability is not available.</p>
             </CardContent>
             <CardFooter>

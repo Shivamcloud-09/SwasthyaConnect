@@ -1,45 +1,133 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Hospital } from '@/data/hospitals';
+import type { Hospital, NearbyHospital } from '@/data/hospitals';
 import { hospitals as curatedHospitals } from '@/data/hospitals';
 import { Input } from '@/components/ui/input';
 import HospitalCard from '@/components/HospitalCard';
-import { Search, ServerCrash } from 'lucide-react';
+import { Search, ServerCrash, LoaderCircle, MapPin, List } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
+import { getDistance } from '@/lib/utils';
+
+type HospitalToShow = Hospital | NearbyHospital;
 
 export default function HospitalList() {
   const [isMounted, setIsMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [allHospitals, setAllHospitals] = useState<HospitalToShow[]>(curatedHospitals);
+  const [isSearchingNearby, setIsSearchingNearby] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const filteredHospitals: Hospital[] = useMemo(() => {
+  const handleFindNearby = () => {
+    setIsSearchingNearby(true);
+    setLocationError(null);
+    setUserLocation(null);
+
+    if (!navigator.geolocation) {
+      const errorMsg = 'Geolocation is not supported by your browser.';
+      setLocationError(errorMsg);
+      toast({ variant: 'destructive', title: 'Error', description: errorMsg });
+      setIsSearchingNearby(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude: lat, longitude: lng } = position.coords;
+        setUserLocation({ lat, lng });
+        try {
+          const nearby = await findNearbyHospitals({ lat, lng });
+          setAllHospitals(nearby);
+        } catch (error) {
+          console.error("Error fetching nearby hospitals:", error);
+          const errorMsg = 'Could not fetch nearby hospitals. Please try again later.';
+          setLocationError(errorMsg);
+          toast({
+            variant: 'destructive',
+            title: 'Search Failed',
+            description: errorMsg,
+          });
+        } finally {
+          setIsSearchingNearby(false);
+        }
+      },
+      (error) => {
+        let message = 'An unknown error occurred.';
+        if (error.code === error.PERMISSION_DENIED) {
+          message = 'You denied the request for Geolocation.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          message = 'Location information is unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          message = 'The request to get user location timed out.';
+        }
+        setLocationError(message);
+        toast({
+            variant: 'destructive',
+            title: 'Location Error',
+            description: message
+        });
+        setIsSearchingNearby(false);
+      }
+    );
+  };
+  
+  const handleShowAll = () => {
+      setAllHospitals(curatedHospitals);
+      setUserLocation(null);
+      setLocationError(null);
+      setSearchTerm('');
+  }
+
+  const filteredHospitals = useMemo(() => {
+    const listToFilter = allHospitals;
+
     if (!searchTerm) {
-      return curatedHospitals;
+      return listToFilter;
     }
     
     const lowercasedTerm = searchTerm.toLowerCase();
-    return curatedHospitals.filter(hospital =>
+    return listToFilter.filter(hospital =>
       hospital.name.toLowerCase().includes(lowercasedTerm) ||
       hospital.address.toLowerCase().includes(lowercasedTerm) ||
-      hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm))
+      ('specialties' in hospital && Array.isArray(hospital.specialties) && hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm)))
     );
-  }, [searchTerm]);
+  }, [searchTerm, allHospitals]);
+
+  const sortedHospitals = useMemo(() => {
+    if (!userLocation) {
+        return filteredHospitals;
+    }
+    // Create a mutable copy before sorting
+    return [...filteredHospitals].sort((a, b) => {
+        const distA = getDistance(userLocation, a.location);
+        const distB = getDistance(userLocation, b.location);
+        return distA - distB;
+    });
+  }, [filteredHospitals, userLocation]);
 
   if (!isMounted) {
     return (
         <div>
+            <div className="flex flex-wrap gap-4 items-center justify-center mb-8">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-10 w-44" />
+            </div>
             <div className="relative mb-8 max-w-2xl mx-auto">
                 <Skeleton className="h-14 w-full rounded-full" />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Skeleton className="h-[300px] w-full" />
-                <Skeleton className="h-[300px] w-full" />
-                <Skeleton className="h-[300px] w-full" />
+                <Skeleton className="h-[450px] w-full" />
+                <Skeleton className="h-[450px] w-full" />
+                <Skeleton className="h-[450px] w-full" />
             </div>
         </div>
     )
@@ -47,6 +135,18 @@ export default function HospitalList() {
 
   return (
     <div>
+        <div className="flex flex-wrap gap-4 items-center justify-center mb-8">
+             <Button onClick={handleFindNearby} disabled={isSearchingNearby}>
+                {isSearchingNearby ? (
+                    <><LoaderCircle className="animate-spin" /> Searching...</>
+                ) : (
+                    <><MapPin /> Find Nearby Hospitals</>
+                )}
+            </Button>
+            <Button onClick={handleShowAll} variant="outline">
+                <List /> Show Curated List
+            </Button>
+        </div>
       <div className="relative mb-8 max-w-2xl mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <Input
@@ -58,10 +158,20 @@ export default function HospitalList() {
         />
       </div>
 
-      {filteredHospitals.length > 0 ? (
+       {locationError && (
+            <div className="text-center py-4 text-destructive bg-destructive/10 rounded-md">
+                <p>{locationError}</p>
+            </div>
+        )}
+
+      {sortedHospitals.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredHospitals.map(hospital => (
-            <HospitalCard key={hospital.id} hospital={hospital} />
+          {sortedHospitals.map(hospital => (
+            <HospitalCard
+              key={'place_id' in hospital ? hospital.place_id : hospital.id} 
+              hospital={hospital} 
+              distance={userLocation ? getDistance(userLocation, hospital.location) : undefined}
+            />
           ))}
         </div>
       ) : (
@@ -69,7 +179,7 @@ export default function HospitalList() {
           <ServerCrash className="h-12 w-12 mx-auto text-destructive mb-4" />
           <h2 className="text-2xl font-semibold mb-2 font-headline">No Hospitals Found</h2>
           <p className="text-muted-foreground mb-6">
-            No hospitals found matching your filter in our database.
+            Your search returned no results. Try adjusting your filter or searching for nearby hospitals.
           </p>
         </div>
       )}
