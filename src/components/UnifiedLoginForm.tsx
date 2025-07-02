@@ -1,4 +1,6 @@
 
+"use client";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import AdminLoginForm from "@/components/AdminLoginForm"
 import UserLoginForm from "@/components/UserLoginForm"
