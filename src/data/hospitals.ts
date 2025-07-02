@@ -71,6 +71,20 @@ export type NearbyHospital = {
   user_ratings_total?: number;
 };
 
+// Zod schema for NearbyHospital, for use in Genkit flows
+export const NearbyHospitalSchema = z.object({
+  place_id: z.string(),
+  name: z.string(),
+  address: z.string(),
+  location: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }),
+  rating: z.number().optional(),
+  user_ratings_total: z.number().optional(),
+});
+export const NearbyHospitalsOutputSchema = z.array(NearbyHospitalSchema);
+
 
 export const hospitals: Hospital[] = [
   {

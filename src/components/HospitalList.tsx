@@ -10,8 +10,7 @@ import { Search, ServerCrash, LoaderCircle, MapPin, List, Edit } from 'lucide-re
 import { Skeleton } from './ui/skeleton';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
-import { geocodeAddress } from '@/ai/flows/geocodeFlow';
+import { findNearbyHospitals, geocodeAddress } from '@/lib/actions/hospitalActions';
 import { getDistance } from '@/lib/utils';
 import {
   DropdownMenu,
