@@ -1,42 +1,83 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
-import type { Hospital, Doctor } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import type { Hospital } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { BedDouble, Droplet, Clock, Phone, ShieldCheck, Stethoscope, Tag, Syringe, Star } from 'lucide-react';
+import { BedDouble, Droplet, Clock, Phone, ShieldCheck, Stethoscope, Tag, Syringe, Star, ServerCrash } from 'lucide-react';
 import BookRideButtons from './BookRideButtons';
 import UserRating from './UserRating';
 import RequestDoctorVisit from './RequestDoctorVisit';
+import { db } from '@/lib/firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { Skeleton } from './ui/skeleton';
 
 type HospitalProfileProps = {
-    hospital: Hospital;
+    hospitalId: number;
 };
 
-export default function HospitalProfile({ hospital: initialHospital }: HospitalProfileProps) {
-    const [hospital, setHospital] = useState(initialHospital);
+export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
+    const [hospital, setHospital] = useState<Hospital | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [userRating, setUserRating] = useState<number | null>(null);
 
     useEffect(() => {
-        // Check for admin overrides
-        const storedAdminData = localStorage.getItem(`swasthya-hospital-${initialHospital.id}`);
-        if (storedAdminData) {
-            const updatedData = JSON.parse(storedAdminData);
-            setHospital(prevHospital => ({ ...prevHospital, ...updatedData }));
-        }
+        if (!hospitalId) {
+            setIsLoading(false);
+            setError("Invalid hospital ID provided.");
+            return;
+        };
 
-        // Check for user rating
-        const storedUserRating = localStorage.getItem(`swasthya-rating-${initialHospital.id}`);
-        if(storedUserRating) {
-            setUserRating(parseInt(storedUserRating, 10));
-        }
-    }, [initialHospital.id]);
+        setIsLoading(true);
+        const hospitalsCollection = collection(db, 'hospitals');
+        const q = query(hospitalsCollection, where("id", "==", hospitalId));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const hospitalDoc = snapshot.docs[0];
+                const hospitalData = { firestoreId: hospitalDoc.id, ...hospitalDoc.data() } as Hospital;
+                setHospital(hospitalData);
+
+                const storedUserRating = localStorage.getItem(`swasthya-rating-${hospitalData.id}`);
+                if(storedUserRating) {
+                    setUserRating(parseInt(storedUserRating, 10));
+                }
+            } else {
+                setHospital(null);
+                setError(`No hospital found with ID: ${hospitalId}`);
+            }
+            setIsLoading(false);
+        }, (err) => {
+            console.error("Error fetching hospital:", err);
+            setError("Failed to fetch hospital data from the database.");
+            setIsLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [hospitalId]);
 
     const handleRatingChange = (newRating: number) => {
+        if (!hospital) return;
         setUserRating(newRating);
-        localStorage.setItem(`swasthya-rating-${initialHospital.id}`, newRating.toString());
+        localStorage.setItem(`swasthya-rating-${hospital.id}`, newRating.toString());
     };
+
+    if (isLoading) {
+        return <HospitalProfileSkeleton />;
+    }
+
+    if (error || !hospital) {
+        return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                 <ServerCrash className="h-16 w-16 mx-auto text-destructive mb-4" />
+                 <h1 className="text-3xl font-bold text-destructive mb-2">Could Not Load Hospital</h1>
+                 <p className="text-muted-foreground">{error || "The requested hospital could not be found."}</p>
+            </div>
+        )
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -67,11 +108,11 @@ export default function HospitalProfile({ hospital: initialHospital }: HospitalP
                         {/* Doctors List */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 font-headline"><Stethoscope /></CardTitle>
+                                <CardTitle className="flex items-center gap-2 font-headline"><Stethoscope /> Doctors</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <ul className="space-y-4">
-                                    {hospital.doctors.map((doctor: Doctor) => (
+                                    {hospital.doctors.map((doctor) => (
                                         <li key={doctor.name} className="flex items-center justify-between">
                                             <div>
                                                 <p className="font-semibold">{doctor.name}</p>
@@ -155,5 +196,57 @@ const InfoItem = ({ icon, label, value }: { icon: React.ReactNode, label: string
             <span className="text-sm font-medium text-muted-foreground">{label}</span>
         </div>
         <span className="text-sm font-semibold text-right">{value}</span>
+    </div>
+);
+
+
+const HospitalProfileSkeleton = () => (
+    <div className="container mx-auto px-4 py-8">
+        <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
+            <div className="text-center mb-8">
+                <Skeleton className="h-12 w-3/4 mx-auto mb-2" />
+                <Skeleton className="h-7 w-1/2 mx-auto" />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
+                    <Card>
+                        <CardContent className="p-0 rounded-lg overflow-hidden h-64 md:h-96">
+                           <Skeleton className="h-full w-full" />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                           <Skeleton className="h-8 w-32" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Skeleton className="h-6 w-full" />
+                            <Skeleton className="h-6 w-full" />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <Skeleton className="h-8 w-24" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-full" />
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader>
+                            <Skeleton className="h-8 w-32" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                           <Skeleton className="h-5 w-full" />
+                           <Skeleton className="h-5 w-full" />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
     </div>
 );

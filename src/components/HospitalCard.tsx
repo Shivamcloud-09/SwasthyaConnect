@@ -1,13 +1,13 @@
+
 "use client";
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Hospital, NearbyHospital } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BedDouble, Droplet, ShieldCheck, ArrowRight, MapPin, Star } from 'lucide-react';
+import { BedDouble, Droplet, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
 
 type HospitalCardProps = {
   hospital: Hospital | NearbyHospital;
@@ -18,18 +18,7 @@ function isNearbyHospital(hospital: Hospital | NearbyHospital): hospital is Near
     return (hospital as NearbyHospital).place_id !== undefined;
 }
 
-export default function HospitalCard({ hospital: initialHospital, distance }: HospitalCardProps) {
-    const [hospital, setHospital] = useState(initialHospital);
-
-    useEffect(() => {
-        if (!isNearbyHospital(initialHospital)) {
-            const storedData = localStorage.getItem(`swasthya-hospital-${initialHospital.id}`);
-            if (storedData) {
-                const updatedData = JSON.parse(storedData);
-                setHospital(prevHospital => ({ ...prevHospital, ...updatedData }));
-            }
-        }
-    }, [initialHospital]);
+export default function HospitalCard({ hospital, distance }: HospitalCardProps) {
 
   if (isNearbyHospital(hospital)) {
     const osmUrl = `https://www.openstreetmap.org/?mlat=${hospital.location.lat}&mlon=${hospital.location.lng}#map=16/${hospital.location.lat}/${hospital.location.lng}`;

@@ -7,6 +7,7 @@ export type Doctor = {
 
 export type Hospital = {
   id: number;
+  firestoreId?: string; // Document ID from Firestore
   name: string;
   address: string;
   location: {

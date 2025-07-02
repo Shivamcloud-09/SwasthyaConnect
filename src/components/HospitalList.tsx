@@ -11,14 +11,12 @@ import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
 import { Skeleton } from './ui/skeleton';
-
-type HospitalListProps = {
-  staticHospitals: Hospital[];
-};
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 type HospitalWithDistance = (Hospital | NearbyHospital) & { distance?: number };
 
-export default function HospitalList({ staticHospitals }: HospitalListProps) {
+export default function HospitalList() {
   const [isMounted, setIsMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -28,10 +26,39 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
   const [viewMode, setViewMode] = useState<'prompt' | 'nearby' | 'all'>('prompt');
   const [apiHospitals, setApiHospitals] = useState<NearbyHospital[]>([]);
   const [isFetchingApi, setIsFetchingApi] = useState(false);
+  
+  const [curatedHospitals, setCuratedHospitals] = useState<Hospital[]>([]);
+  const [isFetchingCurated, setIsFetchingCurated] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Effect to fetch curated hospitals from Firestore
+  useEffect(() => {
+    if (viewMode !== 'all' || !isMounted) return;
+
+    setIsFetchingCurated(true);
+    const hospitalsCollection = collection(db, 'hospitals');
+    const q = query(hospitalsCollection, orderBy('id'));
+    
+    // Using onSnapshot for real-time updates from admin dashboard
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const hospitalList = snapshot.docs.map(doc => ({
+            firestoreId: doc.id,
+            ...doc.data()
+        } as Hospital));
+        setCuratedHospitals(hospitalList);
+        setIsFetchingCurated(false);
+    }, (error) => {
+        console.error("Error fetching curated hospitals:", error);
+        setLocationError("Could not fetch curated hospital list. Is your Firebase config correct?");
+        setIsFetchingCurated(false);
+    });
+
+    return () => unsubscribe(); // Cleanup subscription on unmount
+  }, [viewMode, isMounted]);
+
 
   const handleFindNearby = () => {
     setIsLocating(true);
@@ -93,7 +120,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
     if (viewMode === 'nearby') {
         list = apiHospitals;
     } else if (viewMode === 'all') {
-        list = staticHospitals;
+        list = curatedHospitals;
     }
 
     let hospitalWithDistance = list.map(h => ({
@@ -106,7 +133,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
       hospitalWithDistance = hospitalWithDistance.filter(hospital =>
         hospital.name.toLowerCase().includes(lowercasedTerm) ||
         hospital.address.toLowerCase().includes(lowercasedTerm) ||
-        ('specialties' in hospital && hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm)))
+        ('specialties' in hospital && Array.isArray(hospital.specialties) && hospital.specialties.some(s => s.toLowerCase().includes(lowercasedTerm)))
       );
     }
 
@@ -115,14 +142,17 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
     }
     return hospitalWithDistance.sort((a, b) => a.name.localeCompare(b.name));
 
-  }, [searchTerm, staticHospitals, apiHospitals, userLocation, viewMode]);
+  }, [searchTerm, curatedHospitals, apiHospitals, userLocation, viewMode]);
 
   const renderToggleButton = () => {
     if (viewMode === 'prompt' || isLocating || isFetchingApi) return null;
 
+    const isShowingNearby = viewMode === 'nearby' && apiHospitals.length > 0;
+    const isShowingAll = viewMode === 'all';
+
     return (
-        <Button variant="outline" onClick={() => setViewMode(viewMode === 'all' ? 'nearby' : 'all')}>
-            {viewMode === 'all' ? (
+        <Button variant="outline" onClick={() => setViewMode(isShowingAll ? 'nearby' : 'all')}>
+            {isShowingAll ? (
                 <><MapPin className="mr-2 h-4 w-4" /> Show Nearby Hospitals (Live)</>
             ) : (
                 <><List className="mr-2 h-4 w-4" /> Show All Hospitals (Curated)</>
@@ -137,7 +167,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
             <div className="text-center py-16 max-w-lg mx-auto bg-card border p-8 rounded-lg shadow-sm">
               <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
               <h2 className="text-2xl font-semibold mb-2 font-headline">Find Care Near You</h2>
-              <p className="text-muted-foreground mb-6">Use live search to find hospitals near you via OpenStreetMap, or view our curated list of hospitals.</p>
+              <p className="text-muted-foreground mb-6">Use live search to find hospitals near you via OpenStreetMap, or view our curated list of hospitals from the database.</p>
               <div className="flex flex-col sm:flex-row gap-2 justify-center">
                 <Button size="lg" onClick={handleFindNearby}>
                     Find Nearby
@@ -150,13 +180,16 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
         );
     }
 
-    if (isLocating || isFetchingApi) {
+    if (isLocating || isFetchingApi || (viewMode === 'all' && isFetchingCurated)) {
+        const message = isLocating 
+            ? "Getting your location..." 
+            : isFetchingApi 
+            ? "Searching for nearby hospitals..."
+            : "Loading hospitals from database...";
         return (
             <div className="flex justify-center items-center py-16 flex-col gap-4">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-lg text-muted-foreground">
-                    {isLocating ? "Getting your location..." : "Searching for nearby hospitals..."}
-                </p>
+                <p className="text-lg text-muted-foreground">{message}</p>
             </div>
         );
     }
@@ -183,7 +216,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
             <p className="text-muted-foreground mb-6">
                 {viewMode === 'nearby' 
                 ? "We couldn't find any hospitals nearby using OpenStreetMap. This could be due to your location or a temporary API issue."
-                : "No hospitals found matching your search in our curated list."
+                : `No hospitals found matching your search in our database.`
                 }
             </p>
             {renderToggleButton()}
@@ -191,7 +224,6 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
     );
   }
 
-  // To prevent hydration errors, we ensure the component is mounted on the client before rendering fully.
   if (!isMounted) {
     return (
         <div>

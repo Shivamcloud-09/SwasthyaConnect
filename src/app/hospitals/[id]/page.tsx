@@ -1,5 +1,4 @@
 
-import { hospitals } from '@/data/hospitals';
 import HospitalProfile from '@/components/HospitalProfile';
 import { notFound } from 'next/navigation';
 
@@ -9,23 +8,14 @@ type PageProps = {
     }
 }
 
-export function generateStaticParams() {
-    return hospitals.map((hospital) => ({
-      id: hospital.id.toString(),
-    }))
-}
-
-const getHospitalById = (id: number) => {
-    return hospitals.find(h => h.id === id);
-}
-
+// The page is now dynamic and will fetch data on the client.
 export default function HospitalDetailPage({ params }: PageProps) {
     const hospitalId = parseInt(params.id, 10);
-    const hospital = getHospitalById(hospitalId);
 
-    if (!hospital) {
+    // If the ID from the URL is not a valid number, show a 404 page.
+    if (isNaN(hospitalId)) {
         notFound();
     }
     
-    return <HospitalProfile hospital={hospital} />;
+    return <HospitalProfile hospitalId={hospitalId} />;
 }

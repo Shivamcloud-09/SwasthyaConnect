@@ -11,41 +11,57 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
+import { Skeleton } from './ui/skeleton';
 
-type AdminDashboardProps = {
-    initialHospitals: Hospital[];
-}
-
-export default function AdminDashboard({ initialHospitals }: AdminDashboardProps) {
+export default function AdminDashboard() {
     const router = useRouter();
     const { toast } = useToast();
-    const [hospitals, setHospitals] = useState(initialHospitals);
+    const [hospitals, setHospitals] = useState<Hospital[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('swasthya-admin-auth') === 'true';
         if (!isAuthenticated) {
             router.push('/admin/login');
-        } else {
-            // Load saved data from localStorage for each hospital
-            const loadedHospitals = initialHospitals.map(h => {
-                const savedData = localStorage.getItem(`swasthya-hospital-${h.id}`);
-                return savedData ? { ...h, ...JSON.parse(savedData) } : h;
-            });
-            setHospitals(loadedHospitals);
-            setIsLoading(false);
+            return;
         }
-    }, [router, initialHospitals]);
+
+        const fetchHospitals = async () => {
+            try {
+                const hospitalsCollection = collection(db, 'hospitals');
+                const q = query(hospitalsCollection, orderBy('id'));
+                const hospitalSnapshot = await getDocs(q);
+                const hospitalList = hospitalSnapshot.docs.map(doc => ({
+                    firestoreId: doc.id,
+                    ...doc.data()
+                } as Hospital));
+                setHospitals(hospitalList);
+            } catch (error) {
+                console.error("Error fetching hospitals from Firestore:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not fetch hospital data. Is your Firebase config correct and is data populated?',
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchHospitals();
+    }, [router, toast]);
 
     const handleUpdate = (hospitalId: number, field: string, value: any) => {
         setHospitals(currentHospitals => 
             currentHospitals.map(h => {
                 if (h.id === hospitalId) {
                     const keys = field.split('.');
-                    if (keys.length === 3) { // e.g., beds.icu.available
+                    if (keys.length === 3) {
                         return {...h, [keys[0]]: {...h[keys[0]], [keys[1]]: {...h[keys[0]][keys[1]], [keys[2]]: value}}};
                     }
-                    if (keys.length === 2) { // e.g., oxygen.available
+                    if (keys.length === 2) {
                         return {...h, [keys[0]]: {...h[keys[0]], [keys[1]]: value}};
                     }
                     return { ...h, [field]: value };
@@ -55,25 +71,52 @@ export default function AdminDashboard({ initialHospitals }: AdminDashboardProps
         );
     };
 
-    const handleSaveChanges = (hospitalId: number) => {
+    const handleSaveChanges = async (hospitalId: number) => {
         const hospitalToSave = hospitals.find(h => h.id === hospitalId);
-        if (hospitalToSave) {
-            // Only save the parts that can be modified
-            const dataToStore = {
-                beds: hospitalToSave.beds,
-                oxygen: hospitalToSave.oxygen,
-                hygiene: hospitalToSave.hygiene,
-            };
-            localStorage.setItem(`swasthya-hospital-${hospitalId}`, JSON.stringify(dataToStore));
-            toast({
-                title: "Changes Saved!",
-                description: `Data for ${hospitalToSave.name} has been updated.`,
-            });
+        if (hospitalToSave && hospitalToSave.firestoreId) {
+            const hospitalDocRef = doc(db, 'hospitals', hospitalToSave.firestoreId);
+            try {
+                // Only update the parts that can be modified
+                await updateDoc(hospitalDocRef, {
+                    beds: hospitalToSave.beds,
+                    oxygen: hospitalToSave.oxygen,
+                    hygiene: hospitalToSave.hygiene,
+                });
+                toast({
+                    title: "Changes Saved!",
+                    description: `Data for ${hospitalToSave.name} has been updated in the database.`,
+                });
+            } catch (error) {
+                 console.error("Error updating document:", error);
+                 toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Failed to save changes to the database.',
+                });
+            }
         }
     };
 
     if (isLoading) {
-        return <div className="container mx-auto p-8 text-center">Loading dashboard...</div>;
+        return (
+            <div className="container mx-auto p-4 md:p-8">
+                <div className="flex justify-between items-center mb-6">
+                    <Skeleton className="h-9 w-64" />
+                    <Skeleton className="h-10 w-24" />
+                </div>
+                <Card>
+                    <CardHeader>
+                        <Skeleton className="h-8 w-48" />
+                        <Skeleton className="h-5 w-80" />
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
+        );
     }
 
     return (
@@ -88,7 +131,7 @@ export default function AdminDashboard({ initialHospitals }: AdminDashboardProps
             <Card>
                 <CardHeader>
                     <CardTitle>Manage Hospitals</CardTitle>
-                    <CardDescription>Update live information for each hospital below.</CardDescription>
+                    <CardDescription>Update live information for each hospital below. Data is saved to Firestore.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Accordion type="single" collapsible className="w-full">
