@@ -1,9 +1,9 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Hospital, Home, Siren, LogIn, Ambulance, ShieldAlert, Flame, LifeBuoy, HeartHandshake } from 'lucide-react';
+import { Hospital, Home, Siren, LogIn, Ambulance, ShieldAlert, Flame, LifeBuoy, HeartHandshake, LogOut } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import {
   DropdownMenu,
@@ -14,11 +14,41 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import UserProfileMenu from './UserProfileMenu';
+import { useToast } from '@/hooks/use-toast';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const Header = () => {
   const pathname = usePathname();
   const { user } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "Logout Failed",
+        description: "Firebase is not configured.",
+      });
+      return;
+    }
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+      router.push("/login");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Logout Failed",
+        description: "Could not log you out. Please try again.",
+      });
+    }
+  };
+
 
   return (
     <header className="bg-card shadow-md sticky top-0 z-40">
@@ -78,7 +108,9 @@ const Header = () => {
             </DropdownMenu>
             
             {user ? (
-                 <UserProfileMenu />
+                <Button variant="ghost" size="icon" aria-label="Logout" onClick={handleLogout}>
+                  <LogOut className="h-5 w-5" />
+                </Button>
             ) : (
                 <Link href="/login" passHref>
                   <Button variant={pathname.startsWith('/login') || pathname.startsWith('/admin') ? 'secondary' : 'ghost'} size="icon" aria-label="Login">
