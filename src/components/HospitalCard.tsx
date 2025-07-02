@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -39,8 +40,8 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                 <div data-ai-hint="map location" className="relative h-40 w-full rounded-md overflow-hidden">
-                    <Image src={`https://placehold.co/600x400.png`} alt={hospital.name} fill style={{ objectFit: 'cover' }} />
+                 <div data-ai-hint="map location" className="relative h-40 w-full rounded-lg overflow-hidden">
+                    <Image src={`https://placehold.co/600x400.png`} alt={hospital.name} fill className="object-cover" />
                 </div>
                 <p className="text-sm text-muted-foreground">Details for this hospital are provided by OpenStreetMap. Live data like bed availability is not available.</p>
             </CardContent>
@@ -56,7 +57,7 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
   }
 
   const { id, name, address, hygiene, beds, oxygen, imageUrl } = hospital;
-  const [imgSrc, setImgSrc] = useState(imageUrl);
+  const [imgSrc, setImgSrc] = useState(imageUrl || 'https://placehold.co/600x400.png');
   
   const hygieneVariant = hygiene.rating >= 4.7 ? 'default' : hygiene.rating >= 4.0 ? 'secondary' : 'destructive';
   const hygieneText = hygiene.rating >= 4.7 ? 'High Hygiene' : hygiene.rating >= 4.0 ? 'Good Hygiene' : 'Needs Improvement';
@@ -78,12 +79,12 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
             </div>
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
-            <div data-ai-hint="hospital building" className="relative h-40 w-full rounded-md overflow-hidden">
+            <div data-ai-hint="hospital building" className="relative h-40 w-full rounded-lg overflow-hidden">
                  <Image 
                     src={imgSrc} 
                     alt={name} 
                     fill 
-                    style={{ objectFit: 'cover' }} 
+                    className="object-cover" 
                     onError={() => setImgSrc('https://placehold.co/600x400.png')}
                  />
             </div>

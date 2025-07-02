@@ -12,6 +12,7 @@ import BookRideButtons from './BookRideButtons';
 import UserRating from './UserRating';
 import RequestDoctorVisit from './RequestDoctorVisit';
 import { Skeleton } from './ui/skeleton';
+import Image from 'next/image';
 
 type HospitalProfileProps = {
     hospitalId: number;
@@ -22,6 +23,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [userRating, setUserRating] = useState<number | null>(null);
+    const [imgSrc, setImgSrc] = useState('https://placehold.co/600x400.png');
 
     useEffect(() => {
         setIsLoading(true);
@@ -35,6 +37,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
 
         if (foundHospital) {
             setHospital(foundHospital);
+            setImgSrc(foundHospital.imageUrl || 'https://placehold.co/600x400.png');
             const storedUserRating = localStorage.getItem(`swasthya-rating-${foundHospital.id}`);
             if(storedUserRating) {
                 setUserRating(parseInt(storedUserRating, 10));
@@ -74,6 +77,17 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                 <div className="text-center mb-8">
                     <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-2">{hospital.name}</h1>
                     <p className="text-lg text-muted-foreground">{hospital.address}</p>
+                </div>
+                
+                {/* Hospital Image */}
+                <div data-ai-hint="hospital building" className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
+                    <Image
+                        src={imgSrc}
+                        alt={hospital.name}
+                        fill
+                        className="object-cover"
+                        onError={() => setImgSrc('https://placehold.co/600x400.png')}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -195,6 +209,7 @@ const HospitalProfileSkeleton = () => (
                 <Skeleton className="h-12 w-3/4 mx-auto mb-2" />
                 <Skeleton className="h-7 w-1/2 mx-auto" />
             </div>
+            <Skeleton className="w-full h-64 md:h-96 mb-8 rounded-lg" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
                     <Card>
