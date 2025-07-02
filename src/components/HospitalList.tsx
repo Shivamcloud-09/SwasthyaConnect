@@ -25,12 +25,12 @@ export default function HospitalList() {
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<React.ReactNode | null>(null);
   
-  const [viewMode, setViewMode] = useState<'prompt' | 'nearby' | 'all'>('prompt');
+  const [viewMode, setViewMode] = useState<'prompt' | 'nearby' | 'all'>('all');
   const [apiHospitals, setApiHospitals] = useState<NearbyHospital[]>([]);
   const [isFetchingApi, setIsFetchingApi] = useState(false);
   
   const [curatedHospitals, setCuratedHospitals] = useState<Hospital[]>([]);
-  const [isFetchingCurated, setIsFetchingCurated] = useState(false);
+  const [isFetchingCurated, setIsFetchingCurated] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
