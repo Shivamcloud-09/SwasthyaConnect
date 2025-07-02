@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
@@ -13,13 +14,18 @@ import { findNearbyHospitals } from '@/ai/flows/nearbyHospitalsFlow';
 import { geocodeAddress } from '@/ai/flows/geocodeFlow';
 import { getDistance } from '@/lib/utils';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from './ui/label';
 
@@ -173,7 +179,6 @@ export default function HospitalList() {
             <div className="flex flex-wrap gap-4 items-center justify-center mb-8">
                 <Skeleton className="h-10 w-48" />
                 <Skeleton className="h-10 w-44" />
-                <Skeleton className="h-10 w-44" />
             </div>
             <div className="relative mb-8 max-w-2xl mx-auto">
                 <Skeleton className="h-14 w-full rounded-full" />
@@ -192,20 +197,29 @@ export default function HospitalList() {
   return (
     <div>
         <div className="flex flex-wrap gap-4 items-center justify-center mb-8">
-             <Button onClick={handleFindNearby} disabled={isLoading}>
-                {isSearchingNearby ? (
-                    <><LoaderCircle className="animate-spin" /> Using GPS...</>
-                ) : (
-                    <><MapPin /> Use My Location</>
-                )}
-            </Button>
-            
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button disabled={isLoading}>
+                        <MapPin /> Nearby Hospitals
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                    <DropdownMenuItem onClick={handleFindNearby} disabled={isSearchingNearby}>
+                        {isSearchingNearby ? (
+                            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <MapPin className="mr-2 h-4 w-4" />
+                        )}
+                        <span>{isSearchingNearby ? 'Using GPS...' : 'Use My Location'}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsManualEntryOpen(true)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Enter Location Manually</span>
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
             <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" disabled={isLoading}>
-                    <Edit /> Enter Location Manually
-                </Button>
-              </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Enter Location</DialogTitle>
