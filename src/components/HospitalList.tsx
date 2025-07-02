@@ -220,33 +220,39 @@ export default function HospitalList() {
             </DropdownMenu>
 
             <Dialog open={isManualEntryOpen} onOpenChange={setIsManualEntryOpen}>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Enter Location</DialogTitle>
+                  <DialogTitle className="font-headline">Enter Location Manually</DialogTitle>
                   <DialogDescription>
-                    Type a city, neighborhood, or address to find nearby hospitals.
+                    Type an address, city, or landmark to find hospitals in that area.
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleManualSearch}>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="location" className="text-right">
-                            Location
-                            </Label>
-                            <Input
-                                id="location"
-                                value={manualLocation}
-                                onChange={(e) => setManualLocation(e.target.value)}
-                                className="col-span-3"
-                                placeholder="e.g., 'New Delhi' or 'Connaught Place'"
-                            />
+                    <div className="py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="location">Location</Label>
+                            <div className="relative flex items-center">
+                               <Edit className="absolute left-3 h-5 w-5 text-muted-foreground" />
+                               <Input
+                                    id="location"
+                                    value={manualLocation}
+                                    onChange={(e) => setManualLocation(e.target.value)}
+                                    className="pl-10"
+                                    placeholder="e.g., 'New Delhi' or 'Connaught Place'"
+                                />
+                            </div>
                         </div>
                     </div>
                     <DialogFooter>
-                    <Button type="submit" disabled={isGeocoding}>
+                    <Button type="submit" disabled={isGeocoding} className="w-full">
                         {isGeocoding ? (
-                             <><LoaderCircle className="animate-spin" /> Searching...</>
-                        ) : "Find Hospitals"}
+                             <>
+                                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> 
+                                Searching...
+                             </>
+                        ) : (
+                            "Find Hospitals"
+                        )}
                     </Button>
                     </DialogFooter>
                 </form>
