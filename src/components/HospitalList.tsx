@@ -21,7 +21,7 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationError, setLocationError] = useState<React.ReactNode | null>(null);
   
   const [viewMode, setViewMode] = useState<'prompt' | 'nearby' | 'all'>('prompt');
   const [apiHospitals, setApiHospitals] = useState<NearbyHospital[]>([]);
@@ -49,7 +49,24 @@ export default function HospitalList({ staticHospitals }: HospitalListProps) {
                 } catch (error) {
                     console.error("API call to find hospitals failed:", error);
                     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-                    setLocationError(`Could not fetch nearby hospitals. Reason: ${errorMessage}`);
+                     if (errorMessage.includes("has not been used in project") || errorMessage.includes("is disabled")) {
+                        const projectIdMatch = errorMessage.match(/project(?:s\/|\s)(\d+)/);
+                        const projectId = projectIdMatch ? projectIdMatch[1] : null;
+                        const enableApiUrl = projectId
+                            ? `https://console.developers.google.com/apis/api/places.googleapis.com/overview?project=${projectId}`
+                            : 'https://console.cloud.google.com/apis/library/places.googleapis.com';
+                        
+                        setLocationError(
+                            <>
+                                <span>Google Places API Error: The API must be enabled.</span>
+                                <a href={enableApiUrl} target="_blank" rel="noopener noreferrer" className="font-bold underline ml-1 hover:text-destructive/80">
+                                    Click here to fix it.
+                                </a>
+                            </>
+                        );
+                    } else {
+                        setLocationError(`Could not fetch nearby hospitals. Reason: ${errorMessage}`);
+                    }
                     setViewMode('all');
                 } finally {
                     setIsFetchingApi(false);
