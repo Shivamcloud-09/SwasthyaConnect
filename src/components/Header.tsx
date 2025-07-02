@@ -2,8 +2,12 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Hospital, Home, Siren, LogIn, Ambulance, ShieldAlert, Flame, LifeBuoy, HeartHandshake } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Hospital, Home, Siren, LogIn, LogOut, Ambulance, ShieldAlert, Flame, LifeBuoy, HeartHandshake } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import {
   DropdownMenu,
@@ -17,6 +21,26 @@ import { Button } from "@/components/ui/button"
 
 const Header = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+        await signOut(auth);
+        toast({
+            title: 'Logged Out',
+            description: 'You have been successfully logged out.',
+        });
+        router.push('/');
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Logout Failed',
+            description: 'Could not log you out. Please try again.',
+        });
+    }
+  };
 
   return (
     <header className="bg-card shadow-md sticky top-0 z-40">
@@ -74,12 +98,18 @@ const Header = () => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Link href="/login" passHref>
-              <Button variant={pathname.startsWith('/login') || pathname.startsWith('/admin') ? 'secondary' : 'ghost'} size="icon" aria-label="Login">
-                <LogIn className="h-5 w-5" />
-              </Button>
-            </Link>
+            
+            {user ? (
+                 <Button variant={'ghost'} size="icon" aria-label="Logout" onClick={handleLogout}>
+                    <LogOut className="h-5 w-5" />
+                </Button>
+            ) : (
+                <Link href="/login" passHref>
+                  <Button variant={pathname.startsWith('/login') || pathname.startsWith('/admin') ? 'secondary' : 'ghost'} size="icon" aria-label="Login">
+                      <LogIn className="h-5 w-5" />
+                  </Button>
+                </Link>
+            )}
             
             <ThemeToggle />
           </nav>

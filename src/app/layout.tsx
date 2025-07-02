@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SOSButton from '@/components/SOSButton';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { AuthProvider } from '@/context/AuthContext';
 
 export const metadata: Metadata = {
   title: 'SwasthyaConnect',
@@ -31,6 +32,7 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
         >
+          <AuthProvider>
             <div className="flex flex-col min-h-screen">
             <Header />
             <main className="flex-grow">
@@ -40,6 +42,7 @@ export default function RootLayout({
             </div>
             <SOSButton />
             <Toaster />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
