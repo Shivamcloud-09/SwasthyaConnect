@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 import { collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 
@@ -52,6 +53,24 @@ export default function AdminDashboard() {
 
         fetchHospitals();
     }, [router, toast]);
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            localStorage.removeItem('swasthya-admin-auth');
+            router.push('/admin/login');
+            toast({
+                title: "Logged Out",
+                description: "You have been successfully logged out."
+            })
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Logout Failed',
+                description: 'An error occurred while logging out.',
+            });
+        }
+    };
 
     const handleUpdate = (hospitalId: number, field: string, value: any) => {
         setHospitals(currentHospitals => 
@@ -123,10 +142,7 @@ export default function AdminDashboard() {
         <div className="container mx-auto p-4 md:p-8">
             <div className="flex justify-between items-center mb-6">
                  <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
-                 <Button variant="outline" onClick={() => {
-                     localStorage.removeItem('swasthya-admin-auth');
-                     router.push('/admin/login');
-                 }}>Logout</Button>
+                 <Button variant="outline" onClick={handleLogout}>Logout</Button>
             </div>
             <Card>
                 <CardHeader>

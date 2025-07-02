@@ -57,10 +57,18 @@ export default function UserLoginForm() {
             });
             router.push('/');
         } catch (error: any) {
+            let description = 'Could not sign in with Google. Please try again.';
+            if (error.code === 'auth/popup-closed-by-user') {
+                description = 'The sign-in popup was closed before completing. Please try again.';
+            } else if (error.code === 'auth/account-exists-with-different-credential') {
+                description = 'An account already exists with the same email address but different sign-in credentials.';
+            } else if (error.code === 'auth/operation-not-allowed') {
+                description = 'Google Sign-In is not enabled for this project. Please contact the administrator.';
+            }
             toast({
                 variant: 'destructive',
                 title: 'Login Failed',
-                description: 'Could not sign in with Google. Please try again.',
+                description: description,
             });
         } finally {
             setIsLoading(false);
