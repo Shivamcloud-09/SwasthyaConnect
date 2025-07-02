@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { Hospital, NearbyHospital } from '@/lib/types';
 import { getDistance } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import HospitalCard from '@/components/HospitalCard';
 import { Search, LoaderCircle, AlertTriangle, List, MapPin, ServerCrash } from 'lucide-react';
 import { Button } from './ui/button';
@@ -19,6 +20,7 @@ type HospitalWithDistance = (Hospital | NearbyHospital) & { distance?: number };
 export default function HospitalList() {
   const [isMounted, setIsMounted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [manualLocation, setManualLocation] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState<React.ReactNode | null>(null);
@@ -59,8 +61,23 @@ export default function HospitalList() {
     return () => unsubscribe(); // Cleanup subscription on unmount
   }, [viewMode, isMounted]);
 
+  const fetchHospitalsForLocation = async (coords: { lat: number; lng: number }) => {
+    setUserLocation(coords);
+    setIsFetchingApi(true);
+    try {
+        const results = await findNearbyHospitals(coords);
+        setApiHospitals(results);
+    } catch (error) {
+        console.error("API call to find hospitals failed:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        setLocationError(`Could not fetch nearby hospitals. Please try again later. Reason: ${errorMessage}`);
+        setViewMode('all'); // Revert to a safe view on error
+    } finally {
+        setIsFetchingApi(false);
+    }
+  };
 
-  const handleFindNearby = () => {
+  const handleFindNearbyWithGeolocation = () => {
     setIsLocating(true);
     setLocationError(null);
     setViewMode('nearby'); 
@@ -72,20 +89,8 @@ export default function HospitalList() {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude,
                 };
-                setUserLocation(coords);
                 setIsLocating(false);
-                setIsFetchingApi(true);
-                try {
-                    const results = await findNearbyHospitals(coords);
-                    setApiHospitals(results);
-                } catch (error) {
-                    console.error("API call to find hospitals failed:", error);
-                    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-                    setLocationError(`Could not fetch nearby hospitals. Please try again later. Reason: ${errorMessage}`);
-                    setViewMode('all'); // Revert to a safe view on error
-                } finally {
-                    setIsFetchingApi(false);
-                }
+                await fetchHospitalsForLocation(coords);
             },
             (error) => {
                 let message = 'Could not access your location. You may need to grant permission in your browser settings. Showing all hospitals instead.';
@@ -97,11 +102,7 @@ export default function HospitalList() {
                 setIsLocating(false);
                 setViewMode('all');
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0,
-            }
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
     } else {
         setLocationError('Geolocation is not supported by your browser. Showing all hospitals.');
@@ -110,18 +111,46 @@ export default function HospitalList() {
     }
   };
   
+  const handleManualSearch = async () => {
+    if (!manualLocation.trim()) {
+        setLocationError("Please enter a location to search.");
+        return;
+    }
+    setIsLocating(true);
+    setLocationError(null);
+    setViewMode('nearby'); 
+    try {
+        const geocodeUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(manualLocation)}&format=jsonv2&limit=1`;
+        const geocodeResponse = await fetch(geocodeUrl, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json', 'User-Agent': 'SwasthyaConnect/1.0 (Development Project)' }
+        });
+        const geocodeData = await geocodeResponse.json();
+
+        if (!geocodeResponse.ok || geocodeData.length === 0) {
+            throw new Error(`Could not find coordinates for "${manualLocation}". Please try a different location.`);
+        }
+        const coords = { lat: parseFloat(geocodeData[0].lat), lng: parseFloat(geocodeData[0].lon) };
+        setIsLocating(false);
+        await fetchHospitalsForLocation(coords);
+    } catch (error) {
+        console.error("Manual search failed:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during manual search.";
+        setLocationError(errorMessage);
+        setViewMode('prompt');
+    } finally {
+        setIsLocating(false);
+    }
+  };
+
   const handleShowAll = () => {
     setViewMode('all');
   }
 
   const processedHospitals: HospitalWithDistance[] = useMemo(() => {
     let list: (Hospital | NearbyHospital)[] = [];
-
-    if (viewMode === 'nearby') {
-        list = apiHospitals;
-    } else if (viewMode === 'all') {
-        list = curatedHospitals;
-    }
+    if (viewMode === 'nearby') list = apiHospitals;
+    else if (viewMode === 'all') list = curatedHospitals;
 
     let hospitalWithDistance = list.map(h => ({
         ...h,
@@ -144,45 +173,39 @@ export default function HospitalList() {
 
   }, [searchTerm, curatedHospitals, apiHospitals, userLocation, viewMode]);
 
-  const renderToggleButton = () => {
-    if (viewMode === 'prompt' || isLocating || isFetchingApi) return null;
-
-    const isShowingNearby = viewMode === 'nearby' && apiHospitals.length > 0;
-    const isShowingAll = viewMode === 'all';
-
-    return (
-        <Button variant="outline" onClick={() => setViewMode(isShowingAll ? 'nearby' : 'all')}>
-            {isShowingAll ? (
-                <><MapPin className="mr-2 h-4 w-4" /> Show Nearby Hospitals (Live)</>
-            ) : (
-                <><List className="mr-2 h-4 w-4" /> Show All Hospitals (Curated)</>
-            )}
-        </Button>
-    );
-  }
-
   const renderContent = () => {
     if (viewMode === 'prompt') {
         return (
-            <div className="text-center py-16 max-w-lg mx-auto bg-card border p-8 rounded-lg shadow-sm">
-              <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
-              <h2 className="text-2xl font-semibold mb-2 font-headline">Find Care Near You</h2>
-              <p className="text-muted-foreground mb-6">Use live search to find hospitals near you via OpenStreetMap, or view our curated list of hospitals from the database.</p>
-              <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <Button size="lg" onClick={handleFindNearby}>
-                    Find Nearby
-                </Button>
-                <Button size="lg" variant="secondary" onClick={handleShowAll}>
-                    View Curated List
-                </Button>
-              </div>
+            <div className="text-center py-10 max-w-lg mx-auto bg-card border p-8 rounded-lg shadow-sm">
+                <MapPin className="h-12 w-12 mx-auto text-primary mb-4" />
+                <h2 className="text-2xl font-semibold mb-2 font-headline">Find Care Near You</h2>
+                <p className="text-muted-foreground mb-6">Search for hospitals using your current location, a manual address, or view our complete curated list.</p>
+                <div className="space-y-4">
+                    <Button size="lg" onClick={handleFindNearbyWithGeolocation} className="w-full">
+                        <MapPin className="mr-2 h-4 w-4" /> Use My Current Location
+                    </Button>
+                    <form onSubmit={(e) => { e.preventDefault(); handleManualSearch(); }} className="space-y-2 text-left">
+                        <Label htmlFor="manual-location" className="text-muted-foreground text-sm">Or search by city/address</Label>
+                        <div className="flex gap-2">
+                            <Input id="manual-location" type="text" placeholder="e.g., New York, NY" className="text-base py-5 flex-grow" value={manualLocation} onChange={(e) => setManualLocation(e.target.value)} required />
+                            <Button type="submit" variant="secondary" className="px-5">Search</Button>
+                        </div>
+                    </form>
+                    <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">Or</span></div>
+                    </div>
+                    <Button size="lg" variant="outline" onClick={handleShowAll} className="w-full">
+                        <List className="mr-2 h-4 w-4" /> View Full Curated List
+                    </Button>
+                </div>
             </div>
         );
     }
 
     if (isLocating || isFetchingApi || (viewMode === 'all' && isFetchingCurated)) {
         const message = isLocating 
-            ? "Getting your location..." 
+            ? "Processing your location..." 
             : isFetchingApi 
             ? "Searching for nearby hospitals..."
             : "Loading hospitals from database...";
@@ -196,16 +219,11 @@ export default function HospitalList() {
 
     if (processedHospitals.length > 0) {
         return (
-            <>
-                 <div className="text-center mb-6">
-                    {renderToggleButton()}
-                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {processedHospitals.map(hospital => (
-                        <HospitalCard key={('place_id' in hospital) ? hospital.place_id : hospital.id} hospital={hospital} distance={hospital.distance} />
-                    ))}
-                </div>
-            </>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {processedHospitals.map(hospital => (
+                    <HospitalCard key={('place_id' in hospital) ? hospital.place_id : hospital.id} hospital={hospital} distance={hospital.distance} />
+                ))}
+            </div>
         )
     }
 
@@ -215,11 +233,11 @@ export default function HospitalList() {
             <h2 className="text-2xl font-semibold mb-2 font-headline">No Hospitals Found</h2>
             <p className="text-muted-foreground mb-6">
                 {viewMode === 'nearby' 
-                ? "We couldn't find any hospitals nearby using OpenStreetMap. This could be due to your location or a temporary API issue."
-                : `No hospitals found matching your search in our database.`
+                ? "We couldn't find any hospitals nearby using that location. This could be due to an invalid location or a temporary API issue."
+                : `No hospitals found matching your filter in our database.`
                 }
             </p>
-            {renderToggleButton()}
+            <Button variant="outline" onClick={handleShowAll}>View Full Curated List</Button>
         </div>
     );
   }
@@ -241,17 +259,31 @@ export default function HospitalList() {
 
   return (
     <div>
-      <div className="relative mb-8 max-w-2xl mx-auto">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search for a hospital..."
-          className="pl-10 text-base py-6 rounded-full"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          disabled={viewMode === 'prompt'}
-        />
-      </div>
+      <div className="flex flex-col sm:flex-row items-center gap-4 mb-8 max-w-2xl mx-auto">
+        <div className="relative w-full flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder={viewMode === 'prompt' ? "Start a search below" : "Filter current results..."}
+              className="pl-10 text-base py-6 rounded-full w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={viewMode === 'prompt'}
+            />
+        </div>
+        {viewMode !== 'prompt' && !isLocating && !isFetchingApi && (
+             <Button variant="secondary" onClick={() => {
+                setViewMode('prompt');
+                setSearchTerm('');
+                setLocationError(null);
+                setManualLocation('');
+                setApiHospitals([]);
+                setUserLocation(null);
+            }}>
+                <Search className="mr-2 h-4 w-4" /> New Search
+            </Button>
+        )}
+    </div>
 
       {locationError && (
         <Alert variant="destructive" className="max-w-2xl mx-auto mb-6">
