@@ -56,8 +56,14 @@ export default function HospitalList() {
     setUserLocation({ lat, lng });
 
     try {
-        const nearby = await findNearbyHospitals({ lat, lng });
-        setAllHospitals(nearby);
+        // DEBUG: Temporarily disable to fix 500 error
+        // const nearby = await findNearbyHospitals({ lat, lng });
+        // setAllHospitals(nearby);
+        toast({
+            variant: 'destructive',
+            title: 'Search Disabled',
+            description: "This feature is temporarily unavailable while we fix a bug.",
+        });
     } catch (error) {
         console.error("Error fetching nearby hospitals:", error);
         const errorMsg = 'Could not fetch nearby hospitals. Please try again later.';
@@ -118,14 +124,20 @@ export default function HospitalList() {
 
     setIsGeocoding(true);
     try {
-        const result = await geocodeAddress(manualLocation);
+        // DEBUG: Temporarily disable to fix 500 error
+        // const result = await geocodeAddress(manualLocation);
+        // toast({
+        //     title: "Location Found!",
+        //     description: `Searching for hospitals near ${result.displayName}.`
+        // });
+        // await searchForHospitals(result.lat, result.lng);
+        // setIsManualEntryOpen(false); // Close dialog on success
+        // setManualLocation(''); // Clear input
         toast({
-            title: "Location Found!",
-            description: `Searching for hospitals near ${result.displayName}.`
+            variant: 'destructive',
+            title: 'Search Disabled',
+            description: "This feature is temporarily unavailable while we fix a bug.",
         });
-        await searchForHospitals(result.lat, result.lng);
-        setIsManualEntryOpen(false); // Close dialog on success
-        setManualLocation(''); // Clear input
     } catch (error: any) {
         console.error("Geocoding Error:", error);
         toast({
