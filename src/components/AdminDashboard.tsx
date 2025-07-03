@@ -56,12 +56,28 @@ export default function AdminDashboard() {
                     setHospital(null);
                 } else {
                     const hospitalDoc = querySnapshot.docs[0];
-                    const hospitalData = hospitalDoc.data() as DocumentData;
+                    const hospitalData = hospitalDoc.data();
                     
-                    setHospital({
-                        ...hospitalData,
+                    // Explicitly map the data to our type for safety
+                    const managedHospital: ManagedHospital = {
                         firestoreId: hospitalDoc.id,
-                    } as ManagedHospital);
+                        adminUid: hospitalData.adminUid,
+                        name: hospitalData.name,
+                        address: hospitalData.address,
+                        imageUrl: hospitalData.imageUrl,
+                        location: hospitalData.location,
+                        timings: hospitalData.timings,
+                        contact: hospitalData.contact,
+                        services: hospitalData.services,
+                        specialties: hospitalData.specialties,
+                        beds: hospitalData.beds,
+                        oxygen: hospitalData.oxygen,
+                        medicines: hospitalData.medicines,
+                        doctors: hospitalData.doctors,
+                        hygiene: hospitalData.hygiene,
+                        license: hospitalData.license,
+                    };
+                    setHospital(managedHospital);
                 }
             } catch (error) {
                 console.error("Error fetching hospital data:", error);
@@ -98,6 +114,7 @@ export default function AdminDashboard() {
         }
     };
 
+    // A more robust handler that safely updates nested state.
     const handleUpdate = (field: string, value: any) => {
         if (!hospital) return;
 
@@ -108,9 +125,15 @@ export default function AdminDashboard() {
             const keys = field.split('.');
             let currentLevel: any = updatedHospital;
 
+            // Traverse the path, creating objects if they don't exist to prevent crashes
             for (let i = 0; i < keys.length - 1; i++) {
-                currentLevel = currentLevel[keys[i]];
+                const key = keys[i];
+                if (currentLevel[key] === undefined || typeof currentLevel[key] !== 'object' || currentLevel[key] === null) {
+                    currentLevel[key] = {};
+                }
+                currentLevel = currentLevel[key];
             }
+            
             currentLevel[keys[keys.length - 1]] = value;
             
             return updatedHospital;
