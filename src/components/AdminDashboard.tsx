@@ -35,13 +35,15 @@ export default function AdminDashboard() {
             router.push('/admin/login');
             return;
         }
-        if (!isFirebaseConfigured) {
+        // Add a guard to ensure `db` is not null, which fixes the TypeScript build error.
+        if (!db) {
             setIsLoading(false);
             return;
         }
 
         const fetchHospitalData = async () => {
             setIsLoading(true);
+            // The guard above ensures `db` is a valid Firestore instance here.
             const hospitalsRef = collection(db, "hospitals");
             const q = query(hospitalsRef, where("adminUid", "==", user.uid));
             
@@ -93,7 +95,7 @@ export default function AdminDashboard() {
 
         fetchHospitalData();
 
-    }, [user, authLoading, router, toast, isFirebaseConfigured]);
+    }, [user, authLoading, router, toast, db]);
 
     const handleLogout = async () => {
         if (!auth) {
@@ -157,7 +159,7 @@ export default function AdminDashboard() {
         try {
             const hospitalRef = doc(db, "hospitals", hospital.firestoreId);
             const { firestoreId, ...dataToSave } = hospital;
-            await updateDoc(hospitalRef, dataToSave);
+            await updateDoc(hospitalRef, dataToSave as DocumentData);
             toast({ title: "Changes Saved!", description: "Your hospital information has been updated." });
         } catch (error) {
             console.error("Error saving changes:", error);
