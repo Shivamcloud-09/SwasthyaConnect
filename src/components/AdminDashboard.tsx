@@ -4,47 +4,86 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Hospital } from '@/data/hospitals';
-import { hospitals as allHospitals } from '@/data/hospitals';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
+import { collection, query, where, getDocs, doc, updateDoc, type DocumentData } from "firebase/firestore";
 import { Skeleton } from './ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
+
+type ManagedHospital = Omit<Hospital, 'id'> & { firestoreId: string };
 
 export default function AdminDashboard() {
     const router = useRouter();
     const { toast } = useToast();
-    const [hospitals, setHospitals] = useState<Hospital[]>([]);
+    const { user, loading: authLoading } = useAuth();
+    const [hospital, setHospital] = useState<ManagedHospital | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const isFirebaseConfigured = !!auth;
+    const [isSaving, setIsSaving] = useState(false);
+    const isFirebaseConfigured = !!auth && !!db;
 
     useEffect(() => {
-        const isAuthenticated = localStorage.getItem('swasthya-admin-auth') === 'true';
-        if (!isAuthenticated) {
+        if (authLoading) {
+            return; 
+        }
+        if (!user) {
             router.push('/admin/login');
             return;
         }
-        setHospitals(allHospitals);
-        setIsLoading(false);
-    }, [router]);
-
-    const handleLogout = async () => {
-         if (!isFirebaseConfigured) {
-             toast({
-                variant: 'destructive',
-                title: 'Logout Failed',
-                description: 'Firebase is not configured.',
-            });
+        if (!isFirebaseConfigured) {
+            setIsLoading(false);
             return;
         }
+
+        const fetchHospitalData = async () => {
+            setIsLoading(true);
+            const hospitalsRef = collection(db, "hospitals");
+            const q = query(hospitalsRef, where("adminUid", "==", user.uid));
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    toast({
+                        variant: 'destructive',
+                        title: 'No Hospital Found',
+                        description: 'No hospital is associated with your account. You may need to sign up first.',
+                    });
+                    setHospital(null);
+                } else {
+                    const hospitalDoc = querySnapshot.docs[0];
+                    const hospitalData = hospitalDoc.data() as DocumentData;
+                    
+                    setHospital({
+                        ...hospitalData,
+                        firestoreId: hospitalDoc.id,
+                    } as ManagedHospital);
+                }
+            } catch (error) {
+                console.error("Error fetching hospital data:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not fetch hospital data.',
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchHospitalData();
+
+    }, [user, authLoading, router, toast, isFirebaseConfigured]);
+
+    const handleLogout = async () => {
+        if (!isFirebaseConfigured) return;
         try {
             await signOut(auth!);
-            localStorage.removeItem('swasthya-admin-auth');
+            localStorage.removeItem('swasthya-admin-auth'); // Clear legacy flag just in case
             router.push('/admin/login');
             toast({
                 title: "Logged Out",
@@ -59,64 +98,73 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleUpdate = (hospitalId: number, field: string, value: any) => {
-        setHospitals(currentHospitals =>
-          currentHospitals.map(h => {
-            if (h.id === hospitalId) {
-              const keys = field.split('.');
-              if (keys.length === 3) {
-                return {
-                  ...h,
-                  [keys[0]]: {
-                    ...(h as any)[keys[0]],
-                    [keys[1]]: {
-                      ...(h as any)[keys[0]][keys[1]],
-                      [keys[2]]: value
-                    }
-                  }
-                };
-              }
-              if (keys.length === 2) {
-                return {
-                  ...h,
-                  [keys[0]]: {
-                    ...(h as any)[keys[0]],
-                    [keys[1]]: value
-                  }
-                };
-              }
-              return { ...h, [field]: value };
-            }
-            return h;
-          })
-        );
-      };
-      
+    const handleUpdate = (field: string, value: any) => {
+        if (!hospital) return;
 
-    const handleSaveChanges = async (hospitalId: number) => {
-        toast({
-            title: "Read-only Mode",
-            description: "Changes cannot be saved as the app is using static data.",
+        setHospital(currentHospital => {
+            if (!currentHospital) return null;
+
+            const updatedHospital = JSON.parse(JSON.stringify(currentHospital));
+            const keys = field.split('.');
+            let currentLevel: any = updatedHospital;
+
+            for (let i = 0; i < keys.length - 1; i++) {
+                currentLevel = currentLevel[keys[i]];
+            }
+            currentLevel[keys[keys.length - 1]] = value;
+            
+            return updatedHospital;
         });
     };
+      
+    const handleSaveChanges = async () => {
+        if (!hospital || !hospital.firestoreId || !db) {
+            toast({ variant: "destructive", title: "Error", description: "No hospital data to save." });
+            return;
+        }
 
-    if (isLoading) {
+        setIsSaving(true);
+        try {
+            const hospitalRef = doc(db, "hospitals", hospital.firestoreId);
+            const { firestoreId, ...dataToSave } = hospital;
+            await updateDoc(hospitalRef, dataToSave);
+            toast({ title: "Changes Saved!", description: "Your hospital information has been updated." });
+        } catch (error) {
+            console.error("Error saving changes:", error);
+            toast({ variant: "destructive", title: "Save Failed", description: "Could not save your changes." });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (isLoading || authLoading) {
+        return <AdminDashboardSkeleton />;
+    }
+
+    if (!isFirebaseConfigured) {
         return (
             <div className="container mx-auto p-4 md:p-8">
+                 <h1 className="text-3xl font-bold font-headline mb-4">Admin Dashboard</h1>
+                 <Card>
+                    <CardHeader><CardTitle>Configuration Error</CardTitle></CardHeader>
+                    <CardContent><p>Firebase is not configured. The admin dashboard is unavailable.</p></CardContent>
+                 </Card>
+            </div>
+        )
+    }
+
+    if (!hospital) {
+        return (
+             <div className="container mx-auto p-4 md:p-8">
                 <div className="flex justify-between items-center mb-6">
-                    <Skeleton className="h-9 w-64" />
-                    <Skeleton className="h-10 w-24" />
+                    <h1 className="text-3xl font-bold font-headline">Admin Dashboard</h1>
+                    <Button variant="outline" onClick={handleLogout}>Logout</Button>
                 </div>
                 <Card>
                     <CardHeader>
-                        <Skeleton className="h-8 w-48" />
-                        <Skeleton className="h-5 w-80" />
+                        <CardTitle>No Hospital Data</CardTitle>
+                        <CardDescription>We couldn't find a hospital associated with your account. If you just signed up, please try refreshing.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-12 w-full" />
-                    </CardContent>
                 </Card>
             </div>
         );
@@ -130,42 +178,66 @@ export default function AdminDashboard() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Manage Hospitals</CardTitle>
-                    <CardDescription>Update live information for each hospital below. Data is static and cannot be saved.</CardDescription>
+                    <CardTitle>{hospital.name}</CardTitle>
+                    <CardDescription>Update live information for your hospital below.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                        {hospitals.map(hospital => (
-                            <AccordionItem key={hospital.id} value={`item-${hospital.id}`}>
-                                <AccordionTrigger className="font-headline">{hospital.name}</AccordionTrigger>
-                                <AccordionContent>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor={`general-beds-${hospital.id}`}>General Beds Available</Label>
-                                            <Input type="number" id={`general-beds-${hospital.id}`} value={hospital.beds.general.available} onChange={(e) => handleUpdate(hospital.id, 'beds.general.available', parseInt(e.target.value) || 0)} />
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label htmlFor={`icu-beds-${hospital.id}`}>ICU Beds Available</Label>
-                                            <Input type="number" id={`icu-beds-${hospital.id}`} value={hospital.beds.icu.available} onChange={(e) => handleUpdate(hospital.id, 'beds.icu.available', parseInt(e.target.value) || 0)} />
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label htmlFor={`hygiene-rating-${hospital.id}`}>Hygiene Rating</Label>
-                                            <Input type="number" step="0.1" id={`hygiene-rating-${hospital.id}`} value={hospital.hygiene.rating} onChange={(e) => handleUpdate(hospital.id, 'hygiene.rating', parseFloat(e.target.value) || 0)} />
-                                        </div>
-                                        <div className="flex items-center space-x-2 pt-6">
-                                            <Switch id={`oxygen-available-${hospital.id}`} checked={hospital.oxygen.available} onCheckedChange={(checked) => handleUpdate(hospital.id, 'oxygen.available', checked)} />
-                                            <Label htmlFor={`oxygen-available-${hospital.id}`}>Oxygen Available</Label>
-                                        </div>
-                                    </div>
-                                    <div className="text-right mt-4">
-                                        <Button onClick={() => handleSaveChanges(hospital.id)}>Save Changes</Button>
-                                    </div>
-                                </AccordionContent>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="general-beds">General Beds Available</Label>
+                            <Input type="number" id="general-beds" value={hospital.beds?.general?.available || 0} onChange={(e) => handleUpdate('beds.general.available', parseInt(e.target.value) || 0)} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="icu-beds">ICU Beds Available</Label>
+                            <Input type="number" id="icu-beds" value={hospital.beds?.icu?.available || 0} onChange={(e) => handleUpdate('beds.icu.available', parseInt(e.target.value) || 0)} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="hygiene-rating">Hygiene Rating</Label>
+                            <Input type="number" step="0.1" id="hygiene-rating" value={hospital.hygiene?.rating || 0} onChange={(e) => handleUpdate('hygiene.rating', parseFloat(e.target.value) || 0)} />
+                        </div>
+                        <div className="flex items-center space-x-2 pt-6">
+                            <Switch id="oxygen-available" checked={hospital.oxygen?.available || false} onCheckedChange={(checked) => handleUpdate('oxygen.available', checked)} />
+                            <Label htmlFor="oxygen-available">Oxygen Available</Label>
+                        </div>
+                    </div>
+                    <div className="text-right mt-4">
+                        <Button onClick={handleSaveChanges} disabled={isSaving}>
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         </div>
     );
 }
+
+const AdminDashboardSkeleton = () => (
+    <div className="container mx-auto p-4 md:p-8">
+        <div className="flex justify-between items-center mb-6">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-10 w-24" />
+        </div>
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-5 w-80" />
+            </CardHeader>
+            <CardContent className="space-y-4 p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                     <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                     <div className="space-y-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-10 w-full" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    </div>
+);

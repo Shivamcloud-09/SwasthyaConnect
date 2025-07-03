@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 // Schemas for geocoding an address string
@@ -26,6 +27,7 @@ export type Doctor = {
 export type Hospital = {
   id: number;
   firestoreId?: string; // Document ID from Firestore
+  adminUid?: string; // UID of the admin user from Firebase Auth
   name: string;
   address: string;
   imageUrl: string;

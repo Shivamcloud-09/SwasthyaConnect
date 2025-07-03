@@ -5,7 +5,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { collection, addDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,7 @@ export default function AdminSignupForm() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [hospitalName, setHospitalName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const isFirebaseConfigured = !!auth;
+    const isFirebaseConfigured = !!auth && !!db;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,13 +35,36 @@ export default function AdminSignupForm() {
         }
         setIsLoading(true);
         try {
-            // In a real app, you'd associate this user with the hospital in Firestore
-            await createUserWithEmailAndPassword(auth!, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
+            const user = userCredential.user;
+
+            // Create a corresponding hospital document in Firestore
+            await addDoc(collection(db!, "hospitals"), {
+                adminUid: user.uid,
+                name: hospitalName,
+                address: "Please update in dashboard",
+                imageUrl: "",
+                location: { lat: 0, lng: 0 },
+                timings: "Not set",
+                contact: "",
+                services: [],
+                specialties: [],
+                beds: {
+                    general: { total: 0, available: 0 },
+                    icu: { total: 0, available: 0 },
+                },
+                oxygen: { available: false, lastChecked: "" },
+                medicines: [],
+                doctors: [],
+                hygiene: { rating: 0, lastSanitized: "" },
+                license: "",
+            });
+
             toast({
                 title: 'Admin Account Created!',
-                description: 'You can now log in with your new credentials.',
+                description: `Your hospital "${hospitalName}" is registered. Please log in to update its details.`,
             });
-            router.push('/admin/login'); // Redirect to admin login
+            router.push('/admin/login');
         } catch (error: any) {
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/email-already-in-use') {
