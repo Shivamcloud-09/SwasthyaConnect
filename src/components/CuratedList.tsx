@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import type { Hospital } from '@/data/hospitals';
+import { hospitals as initialHospitals } from '@/data/hospitals';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, type DocumentData } from 'firebase/firestore';
 import { Input } from '@/components/ui/input';
@@ -20,35 +21,54 @@ export default function CuratedList() {
 
   useEffect(() => {
     const fetchHospitals = async () => {
+      setIsLoading(true);
+
+      const fallbackToStaticData = () => {
+        const staticDataWithId = initialHospitals.map(h => ({
+            ...h,
+            firestoreId: h.id.toString(),
+        }));
+        setHospitals(staticDataWithId);
+      };
+      
       if (!db) {
         toast({
           variant: "destructive",
           title: "Database Error",
-          description: "Firebase is not configured, cannot load hospital data.",
+          description: "Firebase not configured. Showing default list.",
         });
+        fallbackToStaticData();
         setIsLoading(false);
         return;
       }
       
-      setIsLoading(true);
       try {
         const hospitalsRef = collection(db, "hospitals");
         const querySnapshot = await getDocs(hospitalsRef);
-        const fetchedHospitals: HospitalWithId[] = [];
-        querySnapshot.forEach(doc => {
-          fetchedHospitals.push({
-            ...(doc.data() as Hospital),
-            firestoreId: doc.id,
+
+        if (querySnapshot.empty) {
+          // Database is empty, so we fall back to the initial static data.
+          // The admin dashboard will seed the DB on first login.
+          fallbackToStaticData();
+        } else {
+          // Database has data, so we use it.
+          const fetchedHospitals: HospitalWithId[] = [];
+          querySnapshot.forEach(doc => {
+            fetchedHospitals.push({
+              ...(doc.data() as Hospital),
+              firestoreId: doc.id,
+            });
           });
-        });
-        setHospitals(fetchedHospitals);
+          setHospitals(fetchedHospitals);
+        }
       } catch (error) {
         console.error("Error fetching hospitals:", error);
         toast({
           variant: "destructive",
           title: "Failed to load hospitals",
-          description: "Could not retrieve data from the database.",
+          description: "Could not retrieve data. Displaying default list.",
         });
+        fallbackToStaticData();
       } finally {
         setIsLoading(false);
       }
@@ -112,7 +132,7 @@ export default function CuratedList() {
           <ServerCrash className="h-12 w-12 mx-auto text-destructive mb-4" />
           <h2 className="text-2xl font-semibold mb-2 font-headline">No Hospitals Found</h2>
           <p className="text-muted-foreground mb-6">
-            Your search returned no results. This may be because the database is empty. An admin can claim hospitals from the admin dashboard to populate the list.
+            Your search returned no results. Please try adjusting your filter.
           </p>
         </div>
       )}
