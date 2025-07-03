@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState }from 'react';
@@ -158,8 +159,13 @@ export default function AdminDashboard() {
         setIsSaving(true);
         try {
             const hospitalRef = doc(db, "hospitals", hospital.firestoreId);
-            const { firestoreId, ...dataToSave } = hospital;
-            await updateDoc(hospitalRef, dataToSave as DocumentData);
+            const dataToUpdate = {
+                "beds.general.available": hospital.beds?.general?.available ?? 0,
+                "beds.icu.available": hospital.beds?.icu?.available ?? 0,
+                "hygiene.rating": hospital.hygiene?.rating ?? 0,
+                "oxygen.available": hospital.oxygen?.available ?? false,
+            };
+            await updateDoc(hospitalRef, dataToUpdate);
             toast({ title: "Changes Saved!", description: "Your hospital information has been updated." });
         } catch (error) {
             console.error("Error saving changes:", error);
