@@ -3,11 +3,10 @@ import HospitalProfile from '@/components/HospitalProfile';
 import { notFound } from 'next/navigation';
 
 export default function HospitalDetailPage({ params }: { params: { id: string } }) {
-  // The ID from the URL is now the Firestore document ID (a string).
-  // We no longer need to parse it as an integer.
-  const hospitalId = params?.id;
+  // Revert to parsing ID as an integer for static data lookup
+  const hospitalId = parseInt(params?.id, 10);
 
-  if (!hospitalId) {
+  if (isNaN(hospitalId)) {
     notFound();
   }
 

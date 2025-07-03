@@ -56,7 +56,7 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
     );
   }
 
-  const { name, address, hygiene, beds, oxygen, imageUrl, firestoreId } = hospital;
+  const { id, name, address, hygiene, beds, oxygen, imageUrl } = hospital;
   const [imgSrc, setImgSrc] = useState(imageUrl || 'https://placehold.co/600x400.png');
   
   const hygieneVariant = hygiene.rating >= 4.7 ? 'default' : hygiene.rating >= 4.0 ? 'secondary' : 'destructive';
@@ -120,8 +120,8 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
             </div>
         </CardContent>
         <CardFooter>
-            <Button asChild className="w-full" disabled={!firestoreId}>
-                <Link href={firestoreId ? `/hospitals/${firestoreId}` : '#'}>
+            <Button asChild className="w-full">
+                <Link href={`/hospitals/${id}`}>
                     View Details <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>

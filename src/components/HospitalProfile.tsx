@@ -3,8 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import type { Hospital } from '@/data/hospitals';
-import { doc, getDoc } from "firebase/firestore";
-import { db } from '@/lib/firebase';
+import { hospitals as initialHospitals } from '@/data/hospitals';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -16,7 +15,7 @@ import { Skeleton } from './ui/skeleton';
 import Image from 'next/image';
 
 type HospitalProfileProps = {
-    hospitalId: string; // Changed to string for Firestore ID
+    hospitalId: number; // Changed back to number for static data
 };
 
 // A dedicated component for the "Not Found" state for clarity.
@@ -32,64 +31,39 @@ const HospitalNotFound = () => (
 export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
     const [hospital, setHospital] = useState<Hospital | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [userRating, setUserRating] = useState<number | null>(null);
     const [imgSrc, setImgSrc] = useState('https://placehold.co/600x400.png');
 
     useEffect(() => {
         setIsLoading(true);
-        setError(null);
+        
+        const foundHospital = initialHospitals.find(h => h.id === hospitalId);
 
-        if (!db || !hospitalId) {
-            setError("Invalid hospital ID or database connection.");
-            setIsLoading(false);
-            return;
-        }
-
-        const fetchHospital = async () => {
-            try {
-                const hospitalRef = doc(db, "hospitals", hospitalId);
-                const hospitalSnap = await getDoc(hospitalRef);
-
-                if (hospitalSnap.exists()) {
-                    const hospitalData = {
-                        id: 0, // Dummy ID
-                        ...(hospitalSnap.data()),
-                        firestoreId: hospitalSnap.id,
-                    } as Hospital;
-                    
-                    setHospital(hospitalData);
-                    setImgSrc(hospitalData.imageUrl || 'https://placehold.co/600x400.png');
-                    const storedUserRating = localStorage.getItem(`swasthya-rating-${hospitalData.firestoreId}`);
-                    if(storedUserRating) {
-                        setUserRating(parseInt(storedUserRating, 10));
-                    }
-                } else {
-                    setHospital(null); // This will trigger the HospitalNotFound component
-                }
-            } catch (e) {
-                console.error("Error fetching hospital profile from Firestore:", e);
-                setError("Could not load hospital data.");
-            } finally {
-                setIsLoading(false);
+        if (foundHospital) {
+            setHospital(foundHospital);
+            setImgSrc(foundHospital.imageUrl || 'https://placehold.co/600x400.png');
+            const storedUserRating = localStorage.getItem(`swasthya-rating-${foundHospital.id}`);
+            if(storedUserRating) {
+                setUserRating(parseInt(storedUserRating, 10));
             }
-        };
-
-        fetchHospital();
+        } else {
+            setHospital(null); 
+        }
+        setIsLoading(false);
     }, [hospitalId]);
 
 
     const handleRatingChange = (newRating: number) => {
-        if (!hospital || !hospital.firestoreId) return;
+        if (!hospital) return;
         setUserRating(newRating);
-        localStorage.setItem(`swasthya-rating-${hospital.firestoreId}`, newRating.toString());
+        localStorage.setItem(`swasthya-rating-${hospital.id}`, newRating.toString());
     };
 
     if (isLoading) {
         return <HospitalProfileSkeleton />;
     }
 
-    if (error || !hospital) {
+    if (!hospital) {
         return <HospitalNotFound />;
     }
 

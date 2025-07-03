@@ -1,51 +1,18 @@
 
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import type { Hospital } from '@/data/hospitals';
-import { collection, getDocs, query } from "firebase/firestore";
-import { db } from '@/lib/firebase';
+import { hospitals as initialHospitals } from '@/data/hospitals';
 import { Input } from '@/components/ui/input';
 import HospitalCard from '@/components/HospitalCard';
-import { Search, ServerCrash, LoaderCircle } from 'lucide-react';
+import { Search, ServerCrash } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
 export default function CuratedList() {
-  const [hospitals, setHospitals] = useState<Hospital[]>([]);
+  const [hospitals] = useState<Hospital[]>(initialHospitals);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  
-  useEffect(() => {
-    const fetchHospitals = async () => {
-        setIsLoading(true);
-        if (!db) {
-            console.warn("Firestore is not configured. Cannot fetch curated list.");
-            setIsLoading(false);
-            return;
-        }
-        try {
-            const hospitalsRef = collection(db, "hospitals");
-            const q = query(hospitalsRef);
-            const querySnapshot = await getDocs(q);
-            const firestoreHospitals = querySnapshot.docs.map(doc => {
-                // We create a dummy numeric 'id' for now to satisfy the type, 
-                // but use firestoreId for all keying and navigation.
-                const data = doc.data();
-                return {
-                    id: Math.random(), // Temporary, as we move away from numeric IDs.
-                    ...data,
-                    firestoreId: doc.id,
-                } as Hospital;
-            });
-            setHospitals(firestoreHospitals);
-        } catch (error) {
-            console.error("Error fetching curated list from Firestore:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    fetchHospitals();
-  }, []);
+  const [isLoading] = useState(false); // No loading needed for static data
 
   const filteredHospitals = useMemo(() => {
     if (!searchTerm) {
@@ -67,7 +34,7 @@ export default function CuratedList() {
                 <Skeleton className="h-14 w-full rounded-full" />
             </div>
              <div className="text-center py-16">
-                 <LoaderCircle className="h-12 w-12 mx-auto text-primary animate-spin mb-4" />
+                 <Skeleton className="h-12 w-12 mx-auto rounded-full mb-4" />
                  <h2 className="text-2xl font-semibold mb-2 font-headline">Loading Hospitals...</h2>
                  <p className="text-muted-foreground">Fetching the latest data from our network.</p>
             </div>
@@ -92,7 +59,7 @@ export default function CuratedList() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredHospitals.map(hospital => (
             <HospitalCard
-              key={hospital.firestoreId} 
+              key={hospital.id} 
               hospital={hospital} 
             />
           ))}
@@ -102,7 +69,7 @@ export default function CuratedList() {
           <ServerCrash className="h-12 w-12 mx-auto text-destructive mb-4" />
           <h2 className="text-2xl font-semibold mb-2 font-headline">No Hospitals Found</h2>
           <p className="text-muted-foreground mb-6">
-            There are currently no hospitals registered in our curated list.
+            Your search returned no results. Try adjusting your filter.
           </p>
         </div>
       )}
