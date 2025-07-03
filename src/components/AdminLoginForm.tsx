@@ -21,9 +21,17 @@ export default function AdminLoginForm() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!auth) {
+            toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: 'Firebase is not configured. Cannot log in.',
+            });
+            return;
+        }
         setIsLoading(true);
         try {
-            await signInWithEmailAndPassword(auth!, email, password);
+            await signInWithEmailAndPassword(auth, email, password);
             // This flag is checked by the dashboard to protect the route.
             localStorage.setItem('swasthya-admin-auth', 'true');
             toast({

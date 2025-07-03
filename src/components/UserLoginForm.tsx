@@ -25,9 +25,17 @@ export default function UserLoginForm() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!auth) {
+            toast({
+               variant: 'destructive',
+               title: 'Login Failed',
+               description: 'Firebase is not configured. Cannot log in.',
+           });
+           return;
+       }
         setIsLoading(true);
         try {
-            await signInWithEmailAndPassword(auth!, email, password);
+            await signInWithEmailAndPassword(auth, email, password);
             toast({
                 title: 'Login Successful',
                 description: 'Welcome back!',
@@ -52,9 +60,17 @@ export default function UserLoginForm() {
     };
 
     const handleGoogleSignIn = async () => {
+        if (!auth || !googleProvider) {
+            toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: 'Firebase is not configured for Google Sign-In.',
+            });
+            return;
+        }
         setIsLoading(true);
         try {
-            await signInWithPopup(auth!, googleProvider!);
+            await signInWithPopup(auth, googleProvider);
             toast({
                 title: 'Login Successful',
                 description: 'Welcome back!',

@@ -3,9 +3,8 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Stethoscope, Ambulance, Car, ClipboardPlus, Hospital, ListChecks, ArrowRight } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { Stethoscope, Ambulance, Car, ClipboardPlus, Hospital, ListChecks } from 'lucide-react';
+import { ServiceCard } from '@/components/ServiceCard';
 
 const services = [
     {
@@ -46,27 +45,6 @@ const services = [
     }
 ];
 
-const ServiceCard = ({ icon: Icon, title, description, href }: { icon: LucideIcon, title: string, description: string, href: string }) => (
-    <Card className="flex flex-col h-full bg-card/50 hover:bg-card/90 hover:shadow-xl transition-all duration-300 group">
-      <CardHeader>
-        <div className="bg-primary/10 text-primary p-4 rounded-full w-fit group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-          <Icon className="w-8 h-8" />
-        </div>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <CardTitle className="font-headline text-xl mb-2">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardContent>
-      <CardFooter>
-        <Button asChild variant="ghost" className="w-full justify-start p-0 h-auto text-base font-semibold text-primary">
-          <Link href={href}>
-            Explore
-            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
-);
 
 export default function Home() {
   return (
@@ -78,10 +56,10 @@ export default function Home() {
         </div>
         
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-16">
-            <Button asChild size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white">
+            <Button asChild size="lg" className="w-full sm:w-auto">
               <Link href="/nearby">Nearby Hospitals</Link>
             </Button>
-            <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white">
+            <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
               <Link href="/curated">Show Curated List</Link>
             </Button>
         </div>

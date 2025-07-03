@@ -96,9 +96,16 @@ export default function AdminDashboard() {
     }, [user, authLoading, router, toast, isFirebaseConfigured]);
 
     const handleLogout = async () => {
-        if (!isFirebaseConfigured) return;
+        if (!auth) {
+            toast({
+                variant: 'destructive',
+                title: 'Logout Failed',
+                description: 'Firebase is not configured.',
+            });
+            return;
+        }
         try {
-            await signOut(auth!);
+            await signOut(auth);
             localStorage.removeItem('swasthya-admin-auth'); // Clear legacy flag just in case
             router.push('/admin/login');
             toast({

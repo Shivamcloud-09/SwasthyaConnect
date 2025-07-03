@@ -23,6 +23,14 @@ export default function UserSignupForm() {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!auth) {
+            toast({
+                variant: 'destructive',
+                title: 'Sign Up Failed',
+                description: 'Firebase is not configured. Cannot sign up.',
+            });
+            return;
+        }
         if (password !== confirmPassword) {
             toast({
                 variant: 'destructive',
@@ -33,7 +41,7 @@ export default function UserSignupForm() {
         }
         setIsLoading(true);
         try {
-            await createUserWithEmailAndPassword(auth!, email, password);
+            await createUserWithEmailAndPassword(auth, email, password);
             toast({
                 title: 'Account Created!',
                 description: 'You have been successfully signed up.',

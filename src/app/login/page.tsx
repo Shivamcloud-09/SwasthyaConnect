@@ -1,4 +1,6 @@
 
+'use client';
+
 import UnifiedLoginForm from "@/components/UnifiedLoginForm";
 
 export default function LoginPage() {

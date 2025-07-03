@@ -25,6 +25,14 @@ export default function AdminSignupForm() {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!auth || !db) {
+            toast({
+               variant: 'destructive',
+               title: 'Sign Up Failed',
+               description: 'Firebase is not configured. Cannot sign up.',
+           });
+           return;
+       }
         if (password !== confirmPassword) {
             toast({
                 variant: 'destructive',
@@ -35,11 +43,11 @@ export default function AdminSignupForm() {
         }
         setIsLoading(true);
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth!, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
             // Create a corresponding hospital document in Firestore
-            await addDoc(collection(db!, "hospitals"), {
+            await addDoc(collection(db, "hospitals"), {
                 adminUid: user.uid,
                 name: hospitalName,
                 address: "Please update in dashboard",
