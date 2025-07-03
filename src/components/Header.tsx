@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const Header = () => {
   const pathname = usePathname();
@@ -58,69 +60,99 @@ const Header = () => {
             <Hospital className="w-6 h-6" />
             <span>SwasthyaConnect</span>
           </Link>
-          <nav className="flex items-center gap-1 md:gap-2">
-            <Link href="/" passHref>
-              <Button variant={pathname === '/' ? 'secondary' : 'ghost'} size="icon" aria-label="Home">
-                <Home className="h-5 w-5" />
-              </Button>
-            </Link>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Emergency Contacts">
-                  <Siren className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Emergency Numbers</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href="tel:102" className="flex items-center gap-2 w-full cursor-pointer">
-                    <Ambulance className="h-4 w-4" />
-                    <span>Ambulance (102)</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                   <a href="tel:112" className="flex items-center gap-2 w-full cursor-pointer">
-                    <ShieldAlert className="h-4 w-4" />
-                    <span>Police (112)</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                   <a href="tel:101" className="flex items-center gap-2 w-full cursor-pointer">
-                    <Flame className="h-4 w-4" />
-                    <span>Fire (101)</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                   <a href="tel:108" className="flex items-center gap-2 w-full cursor-pointer">
-                    <LifeBuoy className="h-4 w-4" />
-                    <span>Disaster Mgmt (108)</span>
-                  </a>
-                </DropdownMenuItem>
-                 <DropdownMenuItem asChild>
-                   <a href="tel:1091" className="flex items-center gap-2 w-full cursor-pointer">
-                    <HeartHandshake className="h-4 w-4" />
-                    <span>Women Helpline (1091)</span>
-                  </a>
-                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {user ? (
-                <Button variant="ghost" size="icon" aria-label="Logout" onClick={handleLogout}>
-                  <LogOut className="h-5 w-5" />
-                </Button>
-            ) : (
-                <Link href="/login" passHref>
-                  <Button variant={pathname.startsWith('/login') || pathname.startsWith('/admin') ? 'secondary' : 'ghost'} size="icon" aria-label="Login">
-                      <LogIn className="h-5 w-5" />
+          <TooltipProvider>
+            <nav className="flex items-center gap-1 md:gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild variant={pathname === '/' ? 'secondary' : 'ghost'} size="icon" aria-label="Home">
+                    <Link href="/">
+                      <Home className="h-5 w-5" />
+                    </Link>
                   </Button>
-                </Link>
-            )}
-            
-            <ThemeToggle />
-          </nav>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Home</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <DropdownMenu>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" aria-label="Emergency Contacts">
+                        <Siren className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Emergency Numbers</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <a href="tel:102" className="flex items-center gap-2 w-full cursor-pointer">
+                        <Ambulance className="h-4 w-4" />
+                        <span>Ambulance (102)</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="tel:112" className="flex items-center gap-2 w-full cursor-pointer">
+                        <ShieldAlert className="h-4 w-4" />
+                        <span>Police (112)</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="tel:101" className="flex items-center gap-2 w-full cursor-pointer">
+                        <Flame className="h-4 w-4" />
+                        <span>Fire (101)</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="tel:108" className="flex items-center gap-2 w-full cursor-pointer">
+                        <LifeBuoy className="h-4 w-4" />
+                        <span>Disaster Mgmt (108)</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="tel:1091" className="flex items-center gap-2 w-full cursor-pointer">
+                        <HeartHandshake className="h-4 w-4" />
+                        <span>Women Helpline (1091)</span>
+                      </a>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <TooltipContent>
+                  <p>Emergency Assistance</p>
+                </TooltipContent>
+              </Tooltip>
+              
+              {user ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" aria-label="Logout" onClick={handleLogout}>
+                        <LogOut className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Logout</p>
+                    </TooltipContent>
+                  </Tooltip>
+              ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button asChild variant={pathname.startsWith('/login') || pathname.startsWith('/admin') ? 'secondary' : 'ghost'} size="icon" aria-label="Login">
+                        <Link href="/login">
+                          <LogIn className="h-5 w-5" />
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Login</p>
+                    </TooltipContent>
+                  </Tooltip>
+              )}
+              
+              <ThemeToggle />
+            </nav>
+          </TooltipProvider>
         </div>
       </div>
     </header>
