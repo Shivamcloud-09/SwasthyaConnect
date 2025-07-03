@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState }from 'react';
@@ -56,7 +55,8 @@ export default function AdminDashboard() {
             }));
 
             // Seed the database if it's completely empty
-            if (unclaimedSnapshot.empty && (await getDocs(hospitalsRef)).empty) {
+            const allHospitalsSnapshot = await getDocs(hospitalsRef);
+            if (unclaimedSnapshot.empty && allHospitalsSnapshot.empty) {
                 await seedDatabase();
                 // Re-fetch after seeding
                 fetchHospitalData();
@@ -89,6 +89,7 @@ export default function AdminDashboard() {
             const snapshot = await getDocs(hospitalsRef);
             if (!snapshot.empty) {
                 toast({ variant: "destructive", title: "Setup Skipped", description: "Database already contains data." });
+                setIsLoading(false);
                 return;
             }
             
@@ -214,7 +215,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-right mt-4">
                             <Button onClick={handleSaveChanges} disabled={isSaving}>
-                                {isSaving ? 'Saving...' : 'Save Changes'}
+                                {isSaving ? <LoaderCircle className="animate-spin" /> : 'Save Changes'}
                             </Button>
                         </div>
                     </CardContent>
