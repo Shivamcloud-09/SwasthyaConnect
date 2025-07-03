@@ -1,12 +1,8 @@
 import HospitalProfile from '@/components/HospitalProfile';
 import { notFound } from 'next/navigation';
 
-export default async function HospitalDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const hospitalId = parseInt(params.id, 10);
+export default function HospitalDetailPage({ params }: any) {
+  const hospitalId = parseInt(params?.id, 10);
 
   if (isNaN(hospitalId)) {
     notFound();

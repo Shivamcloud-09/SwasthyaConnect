@@ -60,22 +60,38 @@ export default function AdminDashboard() {
     };
 
     const handleUpdate = (hospitalId: number, field: string, value: any) => {
-        setHospitals(currentHospitals => 
-            currentHospitals.map(h => {
-                if (h.id === hospitalId) {
-                    const keys = field.split('.');
-                    if (keys.length === 3) {
-                        return {...h, [keys[0]]: {...h[keys[0]], [keys[1]]: {...h[keys[0]][keys[1]], [keys[2]]: value}}};
+        setHospitals(currentHospitals =>
+          currentHospitals.map(h => {
+            if (h.id === hospitalId) {
+              const keys = field.split('.');
+              if (keys.length === 3) {
+                return {
+                  ...h,
+                  [keys[0]]: {
+                    ...(h as any)[keys[0]],
+                    [keys[1]]: {
+                      ...(h as any)[keys[0]][keys[1]],
+                      [keys[2]]: value
                     }
-                    if (keys.length === 2) {
-                        return {...h, [keys[0]]: {...h[keys[0]], [keys[1]]: value}};
-                    }
-                    return { ...h, [field]: value };
-                }
-                return h;
-            })
+                  }
+                };
+              }
+              if (keys.length === 2) {
+                return {
+                  ...h,
+                  [keys[0]]: {
+                    ...(h as any)[keys[0]],
+                    [keys[1]]: value
+                  }
+                };
+              }
+              return { ...h, [field]: value };
+            }
+            return h;
+          })
         );
-    };
+      };
+      
 
     const handleSaveChanges = async (hospitalId: number) => {
         toast({
