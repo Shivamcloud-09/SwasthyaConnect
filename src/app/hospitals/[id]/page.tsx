@@ -1,3 +1,6 @@
+
+'use client';
+
 import HospitalProfile from '@/components/HospitalProfile';
 import { notFound } from 'next/navigation';
 

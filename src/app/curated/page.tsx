@@ -1,4 +1,6 @@
 
+'use client';
+
 import CuratedList from "@/components/CuratedList";
 
 export default function CuratedPage() {

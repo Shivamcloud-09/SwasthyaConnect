@@ -1,4 +1,6 @@
 
+'use client';
+
 import NearbyList from "@/components/NearbyList";
 
 export default function NearbyPage() {

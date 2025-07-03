@@ -1,4 +1,6 @@
 
+'use client';
+
 import UserSignupForm from "@/components/UserSignupForm";
 
 export default function SignupPage() {
