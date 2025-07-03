@@ -3,7 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import type { Hospital } from '@/data/hospitals';
-import { hospitals as initialHospitals } from '@/data/hospitals';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -15,10 +16,9 @@ import { Skeleton } from './ui/skeleton';
 import Image from 'next/image';
 
 type HospitalProfileProps = {
-    hospitalId: number; // Changed back to number for static data
+    hospitalId: string; // Changed to string for Firestore document ID
 };
 
-// A dedicated component for the "Not Found" state for clarity.
 const HospitalNotFound = () => (
     <div className="container mx-auto px-4 py-8 text-center">
         <ServerCrash className="h-16 w-16 mx-auto text-destructive mb-4" />
@@ -35,28 +35,44 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
     const [imgSrc, setImgSrc] = useState('https://placehold.co/600x400.png');
 
     useEffect(() => {
-        setIsLoading(true);
-        
-        const foundHospital = initialHospitals.find(h => h.id === hospitalId);
-
-        if (foundHospital) {
-            setHospital(foundHospital);
-            setImgSrc(foundHospital.imageUrl || 'https://placehold.co/600x400.png');
-            const storedUserRating = localStorage.getItem(`swasthya-rating-${foundHospital.id}`);
-            if(storedUserRating) {
-                setUserRating(parseInt(storedUserRating, 10));
+        const fetchHospital = async () => {
+            if (!db || !hospitalId) {
+                setIsLoading(false);
+                return;
             }
-        } else {
-            setHospital(null); 
-        }
-        setIsLoading(false);
+            setIsLoading(true);
+            try {
+                const hospitalRef = doc(db, "hospitals", hospitalId);
+                const docSnap = await getDoc(hospitalRef);
+
+                if (docSnap.exists()) {
+                    const hospitalData = docSnap.data() as Hospital;
+                    setHospital(hospitalData);
+                    setImgSrc(hospitalData.imageUrl || 'https://placehold.co/600x400.png');
+                    const storedUserRating = localStorage.getItem(`swasthya-rating-${docSnap.id}`);
+                    if (storedUserRating) {
+                        setUserRating(parseInt(storedUserRating, 10));
+                    }
+                } else {
+                    setHospital(null);
+                }
+            } catch (error) {
+                console.error("Error fetching hospital document:", error);
+                setHospital(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchHospital();
     }, [hospitalId]);
 
 
     const handleRatingChange = (newRating: number) => {
         if (!hospital) return;
         setUserRating(newRating);
-        localStorage.setItem(`swasthya-rating-${hospital.id}`, newRating.toString());
+        // Use hospitalId for a stable localStorage key
+        localStorage.setItem(`swasthya-rating-${hospitalId}`, newRating.toString());
     };
 
     if (isLoading) {
@@ -67,18 +83,14 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
         return <HospitalNotFound />;
     }
 
-    // With the guard above, 'hospital' is guaranteed to be non-null here.
-    // We now use optional chaining for robustness against incomplete data.
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
-                {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-2">{hospital.name}</h1>
                     <p className="text-lg text-muted-foreground">{hospital.address}</p>
                 </div>
                 
-                {/* Hospital Image */}
                 <div data-ai-hint="hospital building" className="relative w-full h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
                     <Image
                         src={imgSrc}
@@ -90,9 +102,7 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left/Main Column */}
                     <div className="lg:col-span-2 space-y-8">
-                        {/* Map */}
                         <Card>
                              <CardContent className="p-0 rounded-lg overflow-hidden h-64 md:h-96">
                                 {hospital.location && (
@@ -108,7 +118,6 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                              </CardContent>
                         </Card>
                         
-                        {/* Doctors List */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 font-headline"><Stethoscope /> Doctors</CardTitle>
@@ -128,7 +137,6 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                             </CardContent>
                         </Card>
 
-                        {/* Services & Medicines */}
                         <div className="grid md:grid-cols-2 gap-8">
                              <Card>
                                 <CardHeader>
@@ -149,7 +157,6 @@ export default function HospitalProfile({ hospitalId }: HospitalProfileProps) {
                         </div>
                     </div>
 
-                    {/* Right/Info Column */}
                     <div className="space-y-6">
                         <Card>
                              <CardHeader>

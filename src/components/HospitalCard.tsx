@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BedDouble, Droplet, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
 
+type HospitalWithId = (Hospital | NearbyHospital) & { firestoreId?: string };
+
 type HospitalCardProps = {
-  hospital: Hospital | NearbyHospital;
+  hospital: HospitalWithId;
   distance?: number;
 };
 
-function isNearbyHospital(hospital: Hospital | NearbyHospital): hospital is NearbyHospital {
+function isNearbyHospital(hospital: HospitalWithId): hospital is NearbyHospital {
     return (hospital as NearbyHospital).place_id !== undefined;
 }
 
@@ -56,7 +58,9 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
     );
   }
 
-  const { id, name, address, hygiene, beds, oxygen, imageUrl } = hospital;
+  // Use firestoreId for linking if it exists, otherwise fall back to the numeric id
+  const linkId = hospital.firestoreId || hospital.id;
+  const { name, address, hygiene, beds, oxygen, imageUrl } = hospital;
   const [imgSrc, setImgSrc] = useState(imageUrl || 'https://placehold.co/600x400.png');
   
   const hygieneVariant = hygiene.rating >= 4.7 ? 'default' : hygiene.rating >= 4.0 ? 'secondary' : 'destructive';
@@ -121,7 +125,7 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
         </CardContent>
         <CardFooter>
             <Button asChild className="w-full">
-                <Link href={`/hospitals/${id}`}>
+                <Link href={`/hospitals/${linkId}`}>
                     View Details <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>
