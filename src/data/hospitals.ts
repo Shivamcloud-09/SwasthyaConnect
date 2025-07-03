@@ -94,7 +94,7 @@ export const hospitals: Hospital[] = [
     id: 1,
     name: "City General Hospital",
     address: "123 Main St, Anytown, USA",
-    imageUrl: "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=600&h=400&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=600&h=400&auto=format&fit=crop",
     location: { lat: 28.6139, lng: 77.2090 }, // Delhi for example
     timings: "Open 24/7",
     contact: "555-123-4567",
@@ -117,7 +117,7 @@ export const hospitals: Hospital[] = [
     id: 2,
     name: "Suburban Community Clinic",
     address: "456 Oak Ave, Suburbia, USA",
-    imageUrl: "https://images.unsplash.com/photo-1616696342075-1a4a4b5c5b6c?q=80&w=600&h=400&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1629424912258-a5a5b5652614?q=80&w=600&h=400&auto=format&fit=crop",
     location: { lat: 28.5355, lng: 77.3910 }, // Noida for example
     timings: "8am - 10pm Daily",
     contact: "555-987-6543",
@@ -140,7 +140,7 @@ export const hospitals: Hospital[] = [
     id: 3,
     name: "Hope Medical Center",
     address: "789 Pine Ln, Metro City, USA",
-    imageUrl: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=600&h=400&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=600&h=400&auto=format&fit=crop",
     location: { lat: 19.0760, lng: 72.8777 }, // Mumbai for example
     timings: "Open 24/7",
     contact: "555-234-5678",
@@ -163,7 +163,7 @@ export const hospitals: Hospital[] = [
     id: 4,
     name: "Riverside Recovery Institute",
     address: "101 River Rd, Greenfield, USA",
-    imageUrl: "https://images.unsplash.com/photo-1558544956-15f7c1235a4e?q=80&w=600&h=400&auto=format&fit=crop",
+    imageUrl: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=600&h=400&auto=format&fit=crop",
     location: { lat: 12.9716, lng: 77.5946 }, // Bengaluru for example
     timings: "9am - 6pm Weekdays",
     contact: "555-876-5432",

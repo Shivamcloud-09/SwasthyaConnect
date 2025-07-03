@@ -51,7 +51,7 @@ export default function AdminSignupForm() {
                 adminUid: user.uid,
                 name: hospitalName,
                 address: "Please update in dashboard",
-                imageUrl: "",
+                imageUrl: "https://placehold.co/600x400.png",
                 location: { lat: 0, lng: 0 },
                 timings: "Not set",
                 contact: "",
