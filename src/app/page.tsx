@@ -94,29 +94,17 @@ export default function Home() {
         </div>
         
         <div className="container mx-auto px-4 h-full">
-            <div className="grid md:grid-cols-2 gap-8 items-center min-h-[calc(100vh-80px)]">
+            <div className="flex items-center justify-center md:justify-start min-h-[calc(100vh-80px)]">
                 {/* Text Content */}
-                <div className="relative z-10 text-center md:text-left py-12">
+                <div className="relative z-10 text-center md:text-left py-12 max-w-2xl">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-headline tracking-tight">
                     Smarter Health.
                     <br />
                     <span className="text-primary">Better Living.</span>
                   </h1>
-                  <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto md:mx-0">
+                  <p className="mt-4 text-lg text-muted-foreground">
                     Discover seamless healthcare with instant access to doctors, hassle-free appointments, and personalized wellness support. Trust in technology and expertise designed to keep you healthy, happy, and in control.
                   </p>
-                </div>
-                
-                {/* Image Content */}
-                <div className="relative h-full w-full self-end hidden md:block">
-                  <Image
-                    src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16e?q=80&w=1920&auto=format&fit=crop"
-                    alt="Friendly doctor"
-                    fill
-                    className="object-contain object-bottom"
-                    data-ai-hint="doctor smiling"
-                    priority
-                  />
                 </div>
             </div>
         </div>
