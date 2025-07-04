@@ -80,7 +80,7 @@ function ServiceCard({ icon: Icon, title, description, href }: ServiceCardProps)
 export default function Home() {
   return (
     <>
-      <section className="relative w-full bg-background">
+      <section className="relative w-full bg-background overflow-hidden">
         <div className="absolute inset-0">
           <Image
             src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=1920&auto=format&fit=crop"
@@ -117,16 +117,14 @@ export default function Home() {
                 
                 {/* Image Content */}
                 <div className="relative h-full w-full self-end hidden md:block">
-                  <div className="absolute bottom-0 right-0 h-[80vh] w-full max-w-md lg:max-w-lg">
-                    <Image
-                      src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16e?q=80&w=1920&auto=format&fit=crop"
-                      alt="Friendly doctor"
-                      fill
-                      className="object-contain object-bottom"
-                      data-ai-hint="doctor smiling"
-                      priority
-                    />
-                  </div>
+                  <Image
+                    src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16e?q=80&w=1920&auto=format&fit=crop"
+                    alt="Friendly doctor"
+                    fill
+                    className="object-contain object-bottom"
+                    data-ai-hint="doctor smiling"
+                    priority
+                  />
                 </div>
             </div>
         </div>
