@@ -35,6 +35,8 @@ type HospitalWithId = Hospital & { firestoreId: string };
 type HospitalWithIdAndDistance = HospitalWithId & { distance?: number };
 type NearbyHospitalWithDistance = NearbyHospital & { distance?: number };
 
+const defaultTimeSlots = ["09:00 AM", "10:00 AM", "11:00 AM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"];
+
 export default function PatientAssistance() {
     const { user } = useAuth();
     const router = useRouter();
@@ -152,7 +154,7 @@ export default function PatientAssistance() {
                     });
                     
                     // Sort them by distance
-                    const sortedCurated = curatedHospitals.sort((a,b) => a.distance - b.distance);
+                    const sortedCurated = curatedHospitals.sort((a,b) => (a.distance ?? 0) - (b.distance ?? 0));
 
                     setSearchResults(sortedCurated);
                     setStep('results');
@@ -305,7 +307,9 @@ export default function PatientAssistance() {
                                 <h3 className="text-xl font-bold font-headline mb-4">Hospitals in Our Network (Bookable)</h3>
                                 <Accordion type="single" collapsible className="w-full">
                                     <div className="space-y-4">
-                                    {bookableHospitals.map(hospital => (
+                                    {bookableHospitals.map(hospital => {
+                                        const slots = (hospital.timeSlots && hospital.timeSlots.length > 0) ? hospital.timeSlots : defaultTimeSlots;
+                                        return (
                                         <AccordionItem value={hospital.firestoreId} key={hospital.firestoreId} className="border-b-0">
                                             <Card className="overflow-hidden">
                                             <AccordionTrigger className="p-4 hover:no-underline bg-muted/50 data-[state=open]:bg-muted">
@@ -350,34 +354,30 @@ export default function PatientAssistance() {
                                                     </div>
                                                 </div>
 
-                                                {hospital.timeSlots && hospital.timeSlots.length > 0 && (
-                                                    <>
-                                                        <Separator className="my-4" />
-                                                        <div>
-                                                            <h4 className="font-semibold mb-3 flex items-center gap-2">
-                                                                <Clock className="w-4 h-4 text-primary" />
-                                                                Select an Available Time Slot
-                                                            </h4>
-                                                            <RadioGroup
-                                                                value={selectedTimeSlots[hospital.firestoreId]}
-                                                                onValueChange={(value) => {
-                                                                    setSelectedTimeSlots(prev => ({ ...prev, [hospital.firestoreId]: value }));
-                                                                }}
-                                                                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
-                                                            >
-                                                                {hospital.timeSlots.map(slot => (
-                                                                    <div key={slot} className="flex items-center">
-                                                                        <RadioGroupItem value={slot} id={`${hospital.firestoreId}-${slot}`} />
-                                                                        <Label htmlFor={`${hospital.firestoreId}-${slot}`} className="ml-2 cursor-pointer text-sm">
-                                                                            {slot}
-                                                                        </Label>
-                                                                    </div>
-                                                                ))}
-                                                            </RadioGroup>
-                                                        </div>
-                                                    </>
-                                                )}
-
+                                                <Separator className="my-4" />
+                                                <div>
+                                                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                                        <Clock className="w-4 h-4 text-primary" />
+                                                        Select an Available Time Slot
+                                                    </h4>
+                                                    <RadioGroup
+                                                        value={selectedTimeSlots[hospital.firestoreId]}
+                                                        onValueChange={(value) => {
+                                                            setSelectedTimeSlots(prev => ({ ...prev, [hospital.firestoreId]: value }));
+                                                        }}
+                                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
+                                                    >
+                                                        {slots.map(slot => (
+                                                            <div key={slot} className="flex items-center">
+                                                                <RadioGroupItem value={slot} id={`${hospital.firestoreId}-${slot}`} />
+                                                                <Label htmlFor={`${hospital.firestoreId}-${slot}`} className="ml-2 cursor-pointer text-sm">
+                                                                    {slot}
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </RadioGroup>
+                                                </div>
+                                                
                                                 <Separator className="my-4" />
                                                 
                                                 <Button 
@@ -390,7 +390,7 @@ export default function PatientAssistance() {
                                             </AccordionContent>
                                             </Card>
                                         </AccordionItem>
-                                    ))}
+                                    )})}
                                     </div>
                                 </Accordion>
                             </div>
