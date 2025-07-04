@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,6 +6,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Stethoscope, Ambulance, Car, ClipboardPlus, Hospital, ListChecks, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 
 const services = [
     {
@@ -75,31 +77,72 @@ function ServiceCard({ icon: Icon, title, description, href }: ServiceCardProps)
     );
 }
 
-
 export default function Home() {
   return (
-    <div className="bg-muted/20">
-      <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-4">Your Health, Connected</h1>
-          <p className="text-lg text-muted-foreground">All your healthcare needs, simplified and accessible. Instantly find hospitals, book services, and manage your health from one place.</p>
+    <>
+      <section className="relative w-full bg-muted/30">
+        <div className="container mx-auto px-4">
+            <div className="grid md:grid-cols-2 gap-8 items-center min-h-[calc(100vh-80px)] py-12">
+                {/* Text Content */}
+                <div className="text-center md:text-left z-10">
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-headline tracking-tight">
+                    Smarter Health.
+                    <br />
+                    <span className="text-primary">Better Living.</span>
+                  </h1>
+                  <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto md:mx-0">
+                    Discover seamless healthcare with instant access to doctors, hassle-free appointments, and personalized wellness support. Trust in technology and expertise designed to keep you healthy, happy, and in control.
+                  </p>
+                  <div className="mt-8 flex flex-col sm:flex-row justify-center md:justify-start gap-4">
+                      <Button asChild size="lg" className="w-full sm:w-auto">
+                        <Link href="/assistance">Book an Appointment</Link>
+                      </Button>
+                      <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
+                        <Link href="/emergency">Emergency Help</Link>
+                      </Button>
+                  </div>
+                </div>
+                {/* Image Content */}
+                <div className="relative h-80 md:h-[500px] w-full">
+                   <Image
+                      src="https://images.unsplash.com/photo-1551601651-2a8555f1a136?q=80&w=1920&auto=format&fit=crop"
+                      alt="Hospital background"
+                      fill
+                      className="object-cover z-0 opacity-20 blur-sm rounded-lg"
+                      data-ai-hint="hospital building exterior"
+                      priority
+                    />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                     <div className="relative h-full w-full max-w-sm">
+                        <Image
+                            src="https://placehold.co/600x800.png"
+                            alt="Friendly doctor"
+                            fill
+                            className="object-contain"
+                            data-ai-hint="doctor smiling"
+                            priority
+                        />
+                     </div>
+                  </div>
+                </div>
+            </div>
         </div>
-        
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-16">
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link href="/nearby">Nearby Hospitals</Link>
-            </Button>
-            <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
-              <Link href="/curated">Show Curated List</Link>
-            </Button>
-        </div>
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service) => (
-            <ServiceCard key={service.title} {...service} />
-          ))}
+      <div className="bg-background">
+        <div className="container mx-auto px-4 py-16 md:py-24">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold font-headline text-primary mb-4">All Your Healthcare Needs</h2>
+            <p className="text-lg text-muted-foreground">Instantly find hospitals, book services, and manage your health from one place.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((service) => (
+              <ServiceCard key={service.title} {...service} />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
