@@ -118,7 +118,7 @@ export default function Home() {
                 {/* Image Content */}
                 <div className="relative h-full w-full self-end hidden md:block">
                   <Image
-                    src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16e?q=80&w=1920&auto=format&fit=crop"
+                    src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=1920&auto=format&fit=crop"
                     alt="Friendly doctor"
                     fill
                     className="object-contain object-bottom"
