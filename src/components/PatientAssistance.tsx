@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import type { Hospital } from '@/data/hospitals';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -11,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck } from 'lucide-react';
+import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
     Accordion,
@@ -20,12 +21,15 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Badge } from '@/components/ui/badge';
+import { getDistance } from '@/lib/utils';
+
 
 type ServiceType = 'Appointment' | 'Home Service';
 type Step = 'initial' | 'form' | 'results';
 
-// A version of the Hospital type that includes the Firestore document ID
+// A version of the Hospital type that includes the Firestore document ID and optional distance
 type HospitalWithId = Hospital & { firestoreId: string };
+type HospitalWithIdAndDistance = HospitalWithId & { distance?: number };
 
 export default function PatientAssistance() {
     const { user } = useAuth();
@@ -36,8 +40,9 @@ export default function PatientAssistance() {
     const [serviceType, setServiceType] = useState<ServiceType | null>(null);
     const [hospitalName, setHospitalName] = useState('');
     const [symptoms, setSymptoms] = useState('');
-    const [searchResults, setSearchResults] = useState<HospitalWithId[]>([]);
+    const [searchResults, setSearchResults] = useState<HospitalWithIdAndDistance[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFindingNearby, setIsFindingNearby] = useState(false);
     const [isBooking, setIsBooking] = useState<string | null>(null); // holds hospitalId being booked
 
     const handleServiceSelect = (type: ServiceType) => {
@@ -106,6 +111,65 @@ export default function PatientAssistance() {
         } finally {
             setIsLoading(false);
         }
+    };
+    
+    const handleFindNearby = () => {
+        if (!navigator.geolocation) {
+            toast({ variant: 'destructive', title: 'Geolocation Not Supported' });
+            return;
+        }
+    
+        setIsFindingNearby(true);
+        toast({ title: 'Getting your location...' });
+    
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+    
+                try {
+                    const hospitalsRef = collection(db, 'hospitals');
+                    const querySnapshot = await getDocs(hospitalsRef);
+                    const allHospitals: HospitalWithId[] = [];
+                    querySnapshot.forEach((doc) => {
+                        allHospitals.push({ ...(doc.data() as Hospital), firestoreId: doc.id });
+                    });
+                    
+                    const SEARCH_RADIUS_KM = 50;
+    
+                    const nearbyHospitals = allHospitals
+                        .map(hospital => {
+                            const distance = getDistance(userLocation, hospital.location);
+                            return { ...hospital, distance };
+                        })
+                        .filter(hospital => hospital.distance <= SEARCH_RADIUS_KM)
+                        .sort((a, b) => a.distance - b.distance);
+    
+                    if (nearbyHospitals.length === 0) {
+                         toast({
+                            variant: 'destructive',
+                            title: 'No Hospitals Found',
+                            description: `No hospitals found within ${SEARCH_RADIUS_KM}km. Try searching by name.`,
+                        });
+                    } else {
+                        setSearchResults(nearbyHospitals);
+                        setStep('results');
+                    }
+    
+                } catch (error) {
+                    console.error("Error finding nearby hospitals:", error);
+                    toast({ variant: 'destructive', title: 'Search Failed', description: 'Could not fetch hospital data.' });
+                } finally {
+                    setIsFindingNearby(false);
+                }
+            },
+            () => {
+                toast({ variant: 'destructive', title: 'Location Error', description: 'Could not get your location. Please enable location services.' });
+                setIsFindingNearby(false);
+            }
+        );
     };
 
     const handleConfirmBooking = async (hospital: HospitalWithId) => {
@@ -191,9 +255,15 @@ export default function PatientAssistance() {
                             <Label htmlFor="symptoms">Symptoms or Service Needed</Label>
                             <Textarea id="symptoms" placeholder="e.g., 'Fever and headache' or 'cardiology check-up'" value={symptoms} onChange={e => setSymptoms(e.target.value)} required />
                         </div>
-                        <Button type="submit" disabled={isLoading} className="w-full">
-                            {isLoading ? <LoaderCircle className="animate-spin" /> : <><Search className="mr-2"/>Search Hospitals</>}
-                        </Button>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <Button type="submit" disabled={isLoading || isFindingNearby} className="w-full">
+                                {isLoading ? <LoaderCircle className="animate-spin" /> : <><Search className="mr-2"/>Search by Name</>}
+                            </Button>
+                            <Button type="button" variant="secondary" onClick={handleFindNearby} disabled={isLoading || isFindingNearby} className="w-full">
+                                {isFindingNearby ? <LoaderCircle className="animate-spin" /> : <><MapPin className="mr-2"/>Find Nearby</>}
+                            </Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>
@@ -214,10 +284,16 @@ export default function PatientAssistance() {
                         {searchResults.map(hospital => (
                             <AccordionItem value={hospital.firestoreId} key={hospital.firestoreId} className="border-b-0">
                                 <Card className="overflow-hidden">
-                                <AccordionTrigger className="p-4 hover:no-underline bg-muted/50">
-                                    <div className="text-left">
+                                <AccordionTrigger className="p-4 hover:no-underline bg-muted/50 data-[state=open]:bg-muted">
+                                    <div className="text-left w-full">
                                         <h3 className="font-bold text-lg text-primary">{hospital.name}</h3>
                                         <p className="text-sm text-muted-foreground">{hospital.address}</p>
+                                        {hospital.distance !== undefined && (
+                                            <Badge variant="secondary" className="mt-2">
+                                                <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                                                {hospital.distance.toFixed(1)} km away
+                                            </Badge>
+                                        )}
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="p-4">
