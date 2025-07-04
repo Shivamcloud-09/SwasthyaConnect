@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck, MapPin, ArrowRight } from 'lucide-react';
+import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck, MapPin, ArrowRight, Clock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
     Accordion,
@@ -23,6 +23,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { getDistance } from '@/lib/utils';
 import { findNearbyHospitals } from '@/lib/actions/hospitalActions';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from './ui/separator';
 
 
 type ServiceType = 'Appointment' | 'Home Service';
@@ -46,6 +48,8 @@ export default function PatientAssistance() {
     const [isLoading, setIsLoading] = useState(false);
     const [isFindingNearby, setIsFindingNearby] = useState(false);
     const [isBooking, setIsBooking] = useState<string | null>(null); // holds hospitalId being booked
+    const [selectedTimeSlots, setSelectedTimeSlots] = useState<Record<string, string>>({});
+
 
     const handleServiceSelect = (type: ServiceType) => {
         if (!user) {
@@ -133,27 +137,29 @@ export default function PatientAssistance() {
                 };
     
                 try {
-                    const nearby = await findNearbyHospitals(userLocation);
+                    // First, get all curated hospitals from our DB
+                    const hospitalsRef = collection(db, "hospitals");
+                    const querySnapshot = await getDocs(hospitalsRef);
+                    const curatedHospitals: HospitalWithIdAndDistance[] = [];
+                    querySnapshot.forEach(doc => {
+                        const hospitalData = doc.data() as Hospital;
+                        const distance = getDistance(userLocation, hospitalData.location);
+                        curatedHospitals.push({
+                          ...hospitalData,
+                          firestoreId: doc.id,
+                          distance: distance,
+                        });
+                    });
                     
-                    const nearbyWithDistance = nearby.map(hospital => {
-                        const distance = getDistance(userLocation, hospital.location);
-                        return { ...hospital, distance };
-                    }).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+                    // Sort them by distance
+                    const sortedCurated = curatedHospitals.sort((a,b) => a.distance - b.distance);
 
-                    if (nearbyWithDistance.length === 0) {
-                         toast({
-                            variant: 'destructive',
-                            title: 'No Hospitals Found',
-                            description: `No hospitals found near your location via OpenStreetMap.`,
-                        });
-                    } else {
-                        toast({
-                            title: 'Search Complete',
-                            description: 'Showing nearby hospitals from OpenStreetMap.'
-                        });
-                        setSearchResults(nearbyWithDistance);
-                        setStep('results');
-                    }
+                    setSearchResults(sortedCurated);
+                    setStep('results');
+                    toast({
+                        title: 'Search Complete',
+                        description: `Showing all hospitals in our network, sorted by distance.`
+                    });
     
                 } catch (error) {
                     console.error("Error finding nearby hospitals:", error);
@@ -171,6 +177,17 @@ export default function PatientAssistance() {
 
     const handleConfirmBooking = async (hospital: HospitalWithId) => {
         if (!user || !serviceType || !db) return;
+        
+        const selectedSlot = selectedTimeSlots[hospital.firestoreId];
+
+        if (!selectedSlot) {
+            toast({
+                variant: 'destructive',
+                title: 'Time Slot Required',
+                description: 'Please select a time slot before confirming your booking.',
+            });
+            return;
+        }
 
         setIsBooking(hospital.firestoreId);
         try {
@@ -184,11 +201,12 @@ export default function PatientAssistance() {
                 serviceType: serviceType,
                 status: 'pending',
                 createdAt: new Date(),
+                timeSlot: selectedSlot,
             });
 
             toast({
                 title: 'Request Sent!',
-                description: `Your request for a ${serviceType} has been sent to ${hospital.name}. They will contact you shortly.`,
+                description: `Your ${serviceType} request for ${selectedSlot} at ${hospital.name} has been sent. They will contact you shortly.`,
             });
             
             // Reset flow
@@ -209,6 +227,7 @@ export default function PatientAssistance() {
         setHospitalName('');
         setSymptoms('');
         setSearchResults([]);
+        setSelectedTimeSlots({});
     }
 
     // Step 1: Initial Selection
@@ -301,8 +320,8 @@ export default function PatientAssistance() {
                                                     )}
                                                 </div>
                                             </AccordionTrigger>
-                                            <AccordionContent className="p-4">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                            <AccordionContent className="p-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <div>
                                                         <h4 className="font-semibold mb-2">Live Status</h4>
                                                         <div className="space-y-2 text-sm">
@@ -330,6 +349,37 @@ export default function PatientAssistance() {
                                                         )}
                                                     </div>
                                                 </div>
+
+                                                {hospital.timeSlots && hospital.timeSlots.length > 0 && (
+                                                    <>
+                                                        <Separator className="my-4" />
+                                                        <div>
+                                                            <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                                                <Clock className="w-4 h-4 text-primary" />
+                                                                Select an Available Time Slot
+                                                            </h4>
+                                                            <RadioGroup
+                                                                value={selectedTimeSlots[hospital.firestoreId]}
+                                                                onValueChange={(value) => {
+                                                                    setSelectedTimeSlots(prev => ({ ...prev, [hospital.firestoreId]: value }));
+                                                                }}
+                                                                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
+                                                            >
+                                                                {hospital.timeSlots.map(slot => (
+                                                                    <div key={slot} className="flex items-center">
+                                                                        <RadioGroupItem value={slot} id={`${hospital.firestoreId}-${slot}`} />
+                                                                        <Label htmlFor={`${hospital.firestoreId}-${slot}`} className="ml-2 cursor-pointer text-sm">
+                                                                            {slot}
+                                                                        </Label>
+                                                                    </div>
+                                                                ))}
+                                                            </RadioGroup>
+                                                        </div>
+                                                    </>
+                                                )}
+
+                                                <Separator className="my-4" />
+                                                
                                                 <Button 
                                                     onClick={() => handleConfirmBooking(hospital)} 
                                                     disabled={isBooking !== null}
@@ -397,5 +447,3 @@ export default function PatientAssistance() {
 
     return null; // Should not be reached
 }
-
-    

@@ -60,6 +60,7 @@ export type Hospital = {
     lastSanitized: string;
   };
   license: string;
+  timeSlots?: string[];
 };
 
 export type NearbyHospital = {
@@ -112,6 +113,7 @@ export const hospitals: Hospital[] = [
     ],
     hygiene: { rating: 4.8, lastSanitized: "Today at 1:00 PM" },
     license: "LIC-12345-XYZ",
+    timeSlots: ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM", "04:00 PM"],
   },
   {
     id: 2,
@@ -135,6 +137,7 @@ export const hospitals: Hospital[] = [
     ],
     hygiene: { rating: 4.5, lastSanitized: "Today at 12:00 PM" },
     license: "LIC-67890-ABC",
+    timeSlots: ["09:30 AM", "10:30 AM", "11:30 AM", "03:30 PM", "04:30 PM"],
   },
    {
     id: 3,
@@ -158,6 +161,7 @@ export const hospitals: Hospital[] = [
     ],
     hygiene: { rating: 4.9, lastSanitized: "Today at 3:00 PM" },
     license: "LIC-54321-DEF",
+    timeSlots: ["10:00 AM", "12:00 PM", "02:00 PM", "05:00 PM"],
   },
    {
     id: 4,
@@ -180,5 +184,6 @@ export const hospitals: Hospital[] = [
     ],
     hygiene: { rating: 4.3, lastSanitized: "Today at 10:00 AM" },
     license: "LIC-98765-GHI",
+    timeSlots: ["09:00 AM", "10:00 AM", "11:00 AM", "02:00 PM", "03:00 PM"],
   },
 ];
