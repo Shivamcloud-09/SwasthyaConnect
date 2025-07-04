@@ -105,14 +105,6 @@ export default function Home() {
                   <p className="mt-4 text-lg text-muted-foreground max-w-xl mx-auto md:mx-0">
                     Discover seamless healthcare with instant access to doctors, hassle-free appointments, and personalized wellness support. Trust in technology and expertise designed to keep you healthy, happy, and in control.
                   </p>
-                  <div className="mt-8 flex flex-col sm:flex-row justify-center md:justify-start gap-4">
-                      <Button asChild size="lg" className="w-full sm:w-auto">
-                        <Link href="/assistance">Book an Appointment</Link>
-                      </Button>
-                      <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto">
-                        <Link href="/emergency">Emergency Help</Link>
-                      </Button>
-                  </div>
                 </div>
                 
                 {/* Image Content */}
