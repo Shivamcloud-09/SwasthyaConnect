@@ -5,14 +5,14 @@ import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
-import type { Hospital } from '@/data/hospitals';
+import type { Hospital, NearbyHospital } from '@/data/hospitals';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck, MapPin } from 'lucide-react';
+import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck, MapPin, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
     Accordion,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/accordion"
 import { Badge } from '@/components/ui/badge';
 import { getDistance } from '@/lib/utils';
+import { findNearbyHospitals } from '@/lib/actions/hospitalActions';
 
 
 type ServiceType = 'Appointment' | 'Home Service';
@@ -30,6 +31,7 @@ type Step = 'initial' | 'form' | 'results';
 // A version of the Hospital type that includes the Firestore document ID and optional distance
 type HospitalWithId = Hospital & { firestoreId: string };
 type HospitalWithIdAndDistance = HospitalWithId & { distance?: number };
+type NearbyHospitalWithDistance = NearbyHospital & { distance?: number };
 
 export default function PatientAssistance() {
     const { user } = useAuth();
@@ -40,7 +42,7 @@ export default function PatientAssistance() {
     const [serviceType, setServiceType] = useState<ServiceType | null>(null);
     const [hospitalName, setHospitalName] = useState('');
     const [symptoms, setSymptoms] = useState('');
-    const [searchResults, setSearchResults] = useState<HospitalWithIdAndDistance[]>([]);
+    const [searchResults, setSearchResults] = useState<(HospitalWithIdAndDistance | NearbyHospitalWithDistance)[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isFindingNearby, setIsFindingNearby] = useState(false);
     const [isBooking, setIsBooking] = useState<string | null>(null); // holds hospitalId being booked
@@ -113,13 +115,14 @@ export default function PatientAssistance() {
         }
     };
     
-    const handleFindNearby = () => {
+    const handleFindNearby = async () => {
         if (!navigator.geolocation) {
             toast({ variant: 'destructive', title: 'Geolocation Not Supported' });
             return;
         }
     
         setIsFindingNearby(true);
+        setSearchResults([]);
         toast({ title: 'Getting your location...' });
     
         navigator.geolocation.getCurrentPosition(
@@ -130,32 +133,25 @@ export default function PatientAssistance() {
                 };
     
                 try {
-                    const hospitalsRef = collection(db, 'hospitals');
-                    const querySnapshot = await getDocs(hospitalsRef);
-                    const allHospitals: HospitalWithId[] = [];
-                    querySnapshot.forEach((doc) => {
-                        allHospitals.push({ ...(doc.data() as Hospital), firestoreId: doc.id });
-                    });
+                    const nearby = await findNearbyHospitals(userLocation);
                     
-                    const hospitalsByDistance = allHospitals
-                        .map(hospital => {
-                            const distance = getDistance(userLocation, hospital.location);
-                            return { ...hospital, distance };
-                        })
-                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-    
-                    if (hospitalsByDistance.length === 0) {
+                    const nearbyWithDistance = nearby.map(hospital => {
+                        const distance = getDistance(userLocation, hospital.location);
+                        return { ...hospital, distance };
+                    }).sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+
+                    if (nearbyWithDistance.length === 0) {
                          toast({
                             variant: 'destructive',
                             title: 'No Hospitals Found',
-                            description: `No curated hospitals found in the database.`,
+                            description: `No hospitals found near your location via OpenStreetMap.`,
                         });
                     } else {
                         toast({
                             title: 'Search Complete',
-                            description: 'Showing all curated hospitals, sorted by distance.'
+                            description: 'Showing nearby hospitals from OpenStreetMap.'
                         });
-                        setSearchResults(hospitalsByDistance);
+                        setSearchResults(nearbyWithDistance);
                         setStep('results');
                     }
     
@@ -273,6 +269,9 @@ export default function PatientAssistance() {
     
     // Step 3: Display Results
     if (step === 'results') {
+        const bookableHospitals = searchResults.filter(h => 'firestoreId' in h) as HospitalWithIdAndDistance[];
+        const nearbyOnlyHospitals = searchResults.filter(h => 'place_id' in h) as NearbyHospitalWithDistance[];
+
         return (
             <div className="max-w-4xl mx-auto w-full">
                 <div className="flex items-center gap-4 mb-6">
@@ -281,63 +280,106 @@ export default function PatientAssistance() {
                 </div>
 
                 {searchResults.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full space-y-4">
-                        {searchResults.map(hospital => (
-                            <AccordionItem value={hospital.firestoreId} key={hospital.firestoreId} className="border-b-0">
-                                <Card className="overflow-hidden">
-                                <AccordionTrigger className="p-4 hover:no-underline bg-muted/50 data-[state=open]:bg-muted">
-                                    <div className="text-left w-full">
-                                        <h3 className="font-bold text-lg text-primary">{hospital.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{hospital.address}</p>
-                                        {hospital.distance !== undefined && (
-                                            <Badge variant="secondary" className="mt-2">
-                                                <MapPin className="mr-1.5 h-3.5 w-3.5" />
-                                                {hospital.distance.toFixed(1)} km away
-                                            </Badge>
-                                        )}
+                    <div className="space-y-8">
+                        {bookableHospitals.length > 0 && (
+                            <div>
+                                <h3 className="text-xl font-bold font-headline mb-4">Hospitals in Our Network (Bookable)</h3>
+                                <Accordion type="single" collapsible className="w-full">
+                                    <div className="space-y-4">
+                                    {bookableHospitals.map(hospital => (
+                                        <AccordionItem value={hospital.firestoreId} key={hospital.firestoreId} className="border-b-0">
+                                            <Card className="overflow-hidden">
+                                            <AccordionTrigger className="p-4 hover:no-underline bg-muted/50 data-[state=open]:bg-muted">
+                                                <div className="text-left w-full">
+                                                    <h3 className="font-bold text-lg text-primary">{hospital.name}</h3>
+                                                    <p className="text-sm text-muted-foreground">{hospital.address}</p>
+                                                    {hospital.distance !== undefined && (
+                                                        <Badge variant="secondary" className="mt-2">
+                                                            <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                                                            {hospital.distance.toFixed(1)} km away
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </AccordionTrigger>
+                                            <AccordionContent className="p-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Live Status</h4>
+                                                        <div className="space-y-2 text-sm">
+                                                            <p className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-primary"/> General Beds: {hospital.beds.general.available} / {hospital.beds.general.total}</p>
+                                                            <p className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-destructive"/> ICU Beds: {hospital.beds.icu.available} / {hospital.beds.icu.total}</p>
+                                                            <p className="flex items-center gap-2"><Droplet className={`w-4 h-4 ${hospital.oxygen.available ? 'text-green-500' : 'text-destructive'}`}/> Oxygen: {hospital.oxygen.available ? 'Available' : 'Low'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Doctors on Staff</h4>
+                                                        {hospital.doctors && hospital.doctors.length > 0 ? (
+                                                            <ul className="space-y-2 text-sm">
+                                                                {hospital.doctors.map(doc => (
+                                                                    <li key={doc.name} className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <UserCheck className="w-4 h-4 text-primary" />
+                                                                            <span>{doc.name} <span className="text-muted-foreground">({doc.specialization})</span></span>
+                                                                        </div>
+                                                                        <Badge variant="secondary">{doc.availability}</Badge>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        ) : (
+                                                            <p className="text-sm text-muted-foreground">No doctor information available.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button 
+                                                    onClick={() => handleConfirmBooking(hospital)} 
+                                                    disabled={isBooking !== null}
+                                                    className="w-full sm:w-auto"
+                                                >
+                                                    {isBooking === hospital.firestoreId ? <LoaderCircle className="animate-spin" /> : <><Send className="mr-2"/>Confirm {serviceType}</>}
+                                                </Button>
+                                            </AccordionContent>
+                                            </Card>
+                                        </AccordionItem>
+                                    ))}
                                     </div>
-                                </AccordionTrigger>
-                                <AccordionContent className="p-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                                        <div>
-                                            <h4 className="font-semibold mb-2">Live Status</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <p className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-primary"/> General Beds: {hospital.beds.general.available} / {hospital.beds.general.total}</p>
-                                                <p className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-destructive"/> ICU Beds: {hospital.beds.icu.available} / {hospital.beds.icu.total}</p>
-                                                <p className="flex items-center gap-2"><Droplet className={`w-4 h-4 ${hospital.oxygen.available ? 'text-green-500' : 'text-destructive'}`}/> Oxygen: {hospital.oxygen.available ? 'Available' : 'Low'}</p>
+                                </Accordion>
+                            </div>
+                        )}
+
+                        {nearbyOnlyHospitals.length > 0 && (
+                             <div>
+                                <h3 className="text-xl font-bold font-headline mb-4">Other Nearby Hospitals</h3>
+                                <p className="text-muted-foreground mb-4 text-sm">The following are from a public directory. Live data and booking are not available for them via SwasthyaConnect.</p>
+                                <div className="space-y-4">
+                                {nearbyOnlyHospitals.map(hospital => (
+                                    <Card key={hospital.place_id}>
+                                        <CardHeader>
+                                            <div className="flex justify-between items-start gap-4">
+                                                <div>
+                                                    <CardTitle className="font-bold text-lg text-primary">{hospital.name}</CardTitle>
+                                                    <CardDescription>{hospital.address}</CardDescription>
+                                                </div>
+                                                {hospital.distance !== undefined && (
+                                                    <Badge variant="secondary" className="mt-2 shrink-0">
+                                                        <MapPin className="mr-1.5 h-3.5 w-3.5" />
+                                                        {hospital.distance.toFixed(1)} km away
+                                                    </Badge>
+                                                )}
                                             </div>
-                                        </div>
-                                        <div>
-                                            <h4 className="font-semibold mb-2">Doctors on Staff</h4>
-                                            {hospital.doctors && hospital.doctors.length > 0 ? (
-                                                <ul className="space-y-2 text-sm">
-                                                    {hospital.doctors.map(doc => (
-                                                        <li key={doc.name} className="flex items-center justify-between">
-                                                            <div className="flex items-center gap-2">
-                                                                <UserCheck className="w-4 h-4 text-primary" />
-                                                                <span>{doc.name} <span className="text-muted-foreground">({doc.specialization})</span></span>
-                                                            </div>
-                                                            <Badge variant="secondary">{doc.availability}</Badge>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">No doctor information available.</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <Button 
-                                        onClick={() => handleConfirmBooking(hospital)} 
-                                        disabled={isBooking !== null}
-                                        className="w-full sm:w-auto"
-                                    >
-                                        {isBooking === hospital.firestoreId ? <LoaderCircle className="animate-spin" /> : <><Send className="mr-2"/>Confirm {serviceType}</>}
-                                    </Button>
-                                </AccordionContent>
-                                </Card>
-                            </AccordionItem>
-                        ))}
-                    </Accordion>
+                                        </CardHeader>
+                                        <CardFooter>
+                                            <Button asChild className="w-full" variant="outline">
+                                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hospital.name)}&query_place_id=${hospital.place_id}`} target="_blank" rel="noopener noreferrer">
+                                                    View on Google Maps <ArrowRight className="ml-2 h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </CardFooter>
+                                    </Card>
+                                ))}
+                                </div>
+                             </div>
+                        )}
+                    </div>
                 ) : (
                     <Card className="text-center p-12">
                          <Stethoscope className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -355,3 +397,5 @@ export default function PatientAssistance() {
 
     return null; // Should not be reached
 }
+
+    
