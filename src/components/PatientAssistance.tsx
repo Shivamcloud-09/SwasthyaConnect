@@ -137,24 +137,25 @@ export default function PatientAssistance() {
                         allHospitals.push({ ...(doc.data() as Hospital), firestoreId: doc.id });
                     });
                     
-                    const SEARCH_RADIUS_KM = 50;
-    
-                    const nearbyHospitals = allHospitals
+                    const hospitalsByDistance = allHospitals
                         .map(hospital => {
                             const distance = getDistance(userLocation, hospital.location);
                             return { ...hospital, distance };
                         })
-                        .filter(hospital => hospital.distance <= SEARCH_RADIUS_KM)
-                        .sort((a, b) => a.distance - b.distance);
+                        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
     
-                    if (nearbyHospitals.length === 0) {
+                    if (hospitalsByDistance.length === 0) {
                          toast({
                             variant: 'destructive',
                             title: 'No Hospitals Found',
-                            description: `No hospitals found within ${SEARCH_RADIUS_KM}km. Try searching by name.`,
+                            description: `No curated hospitals found in the database.`,
                         });
                     } else {
-                        setSearchResults(nearbyHospitals);
+                        toast({
+                            title: 'Search Complete',
+                            description: 'Showing all curated hospitals, sorted by distance.'
+                        });
+                        setSearchResults(hospitalsByDistance);
                         setStep('results');
                     }
     
