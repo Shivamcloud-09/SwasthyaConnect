@@ -1,23 +1,23 @@
-
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Ambulance, ShieldAlert, Flame, MessageSquare, Map as MapIcon, Siren, Phone, ArrowLeft } from 'lucide-react';
+import { Ambulance, ShieldAlert, Flame, MessageSquare, Map as MapIcon, Siren, ArrowLeft } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// Leaflet imports - dynamically imported to avoid SSR issues
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
+// Dynamically import the LiveMap component to avoid SSR issues with Leaflet
+const LiveMap = dynamic(() => import('@/components/LiveMap'), { 
+    ssr: false,
+    loading: () => <Skeleton className="w-full h-96 rounded-lg" />
+});
 
 export default function EmergencyPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const mapRef = useRef(null);
-  const mapInstance = useRef<L.Map | null>(null);
 
   const handleSos = async () => {
     if (!navigator.geolocation) {
@@ -35,7 +35,6 @@ export default function EmergencyPage() {
             body: JSON.stringify({
               lat: pos.coords.latitude,
               lng: pos.coords.longitude,
-              phone: 'N/A', // Placeholder as user isn't logged in to provide number
             }),
           });
           if (res.ok) {
@@ -81,7 +80,7 @@ export default function EmergencyPage() {
     },
     {
       title: 'View Live Location',
-      description: 'Scroll to a map showing your current real-time location.',
+      description: 'See a map showing your current real-time location.',
       icon: MapIcon,
       action: () => {
         const el = document.getElementById('map-container');
@@ -95,50 +94,6 @@ export default function EmergencyPage() {
       action: handleSos,
     },
   ];
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !mapRef.current || mapInstance.current) return;
-
-    // Fix for default icon path issue with webpack
-    const defaultIcon = new L.Icon({
-        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    });
-    L.Marker.prototype.options.icon = defaultIcon;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        if (mapRef.current && !mapInstance.current) {
-            mapInstance.current = L.map(mapRef.current).setView([latitude, longitude], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            }).addTo(mapInstance.current);
-            L.marker([latitude, longitude]).addTo(mapInstance.current).bindPopup('You are here.').openPopup();
-        }
-      },
-      (error) => {
-        console.error('Could not get geolocation:', error);
-        toast({
-            variant: "destructive",
-            title: "Location Disabled",
-            description: "Your live location map could not be displayed."
-        })
-      }
-    );
-
-    return () => {
-        if (mapInstance.current) {
-            mapInstance.current.remove();
-            mapInstance.current = null;
-        }
-    }
-  }, [toast]);
 
   return (
     <div className="bg-background">
@@ -167,10 +122,13 @@ export default function EmergencyPage() {
             </Card>
           ))}
         </div>
-
+        
         <div id="map-container" className="mt-16 pt-8 border-t">
            <h2 className="text-3xl font-bold font-headline text-center text-primary mb-6">Your Live Location</h2>
-           <div id="map" ref={mapRef} className="w-full h-96 rounded-lg overflow-hidden border-2 border-primary/20 shadow-xl" />
+           <p className="text-center text-muted-foreground mb-6">Note: Map functionality requires location permissions.</p>
+            <div className="rounded-lg overflow-hidden border">
+             <LiveMap />
+           </div>
         </div>
 
         <div className="mt-12 text-center">

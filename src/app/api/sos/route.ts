@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { lat, lng, phone } = await req.json();
+    const { lat, lng } = await req.json();
 
     if (lat === undefined || lng === undefined) {
       return NextResponse.json({ error: 'Missing latitude or longitude.' }, { status: 400 });
@@ -17,7 +17,6 @@ export async function POST(req: Request) {
 
     await addDoc(collection(db, 'sos-alerts'), {
       timestamp: new Date(),
-      phone: phone || 'Unknown',
       location: { lat, lng },
     });
 
