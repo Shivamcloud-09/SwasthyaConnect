@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection } from 'firebase/firestore';
 
 export async function POST(req: Request) {
   if (!db) {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     await addDoc(collection(db, 'sos-alerts'), {
-      timestamp: serverTimestamp(),
+      timestamp: new Date(),
       phone: phone || 'Unknown',
       location: { lat, lng },
     });
