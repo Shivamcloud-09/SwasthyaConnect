@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Hospital, LogIn, LogOut, Menu } from 'lucide-react';
+import { Hospital, LogIn, LogOut, Menu, Home, Info, Siren, Phone } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from "@/components/ui/button";
 import { useToast } from '@/hooks/use-toast';
@@ -14,9 +14,9 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/s
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '#', label: 'About' },
-  { href: '/emergency', label: 'Emergency Assistance' },
+  { href: '/', label: 'Home', icon: Home },
+  { href: '#', label: 'About', icon: Info },
+  { href: '/emergency', label: 'Emergency Assistance', icon: Siren },
 ];
 
 export default function Header() {
@@ -59,30 +59,40 @@ export default function Header() {
         </Link>
         
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8 text-base font-medium">
+        <nav className="hidden md:flex items-center gap-6 text-base font-medium">
           {navLinks.map(link => (
             <Link 
               key={link.href} 
               href={link.href}
               className={cn(
-                "transition-colors hover:text-primary",
+                "flex items-center gap-2 transition-colors hover:text-primary",
                 pathname === link.href ? "text-primary font-semibold" : "text-muted-foreground"
               )}
             >
+              <link.icon />
               {link.label}
             </Link>
           ))}
            {user ? (
-            <Button variant="ghost" onClick={handleLogout}>Logout</Button>
+            <Button variant="ghost" onClick={handleLogout}>
+              <LogOut />
+              Logout
+            </Button>
           ) : (
-            <Link href="/login" className={cn("transition-colors hover:text-primary", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "text-primary font-semibold" : "text-muted-foreground")}>
+            <Link href="/login" className={cn("flex items-center gap-2 transition-colors hover:text-primary", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "text-primary font-semibold" : "text-muted-foreground")}>
+                <LogIn />
                 Login
             </Link>
           )}
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button asChild><Link href="#">Contact Us</Link></Button>
+          <Button asChild>
+            <Link href="#">
+              <Phone />
+              Contact Us
+            </Link>
+          </Button>
           <ThemeToggle />
         </div>
 
@@ -98,24 +108,43 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent>
               <nav className="flex flex-col gap-6 text-lg font-medium mt-8">
-                {[...navLinks, { href: '/login', label: user ? 'Logout' : 'Login' }].map(link => (
+                {navLinks.map(link => (
                   <SheetClose asChild key={link.href}>
                     <Link 
                       href={link.href}
-                      onClick={link.label === 'Logout' ? (e) => { e.preventDefault(); handleLogout(); } : undefined}
                       className={cn(
-                        "transition-colors hover:text-primary",
+                        "flex items-center gap-4 transition-colors hover:text-primary",
                         pathname === link.href ? "text-primary" : "text-muted-foreground"
                       )}
                     >
+                      <link.icon className="h-5 w-5" />
                       {link.label}
                     </Link>
                   </SheetClose>
                 ))}
+                
+                <SheetClose asChild>
+                   <Link 
+                      href={'/login'}
+                      onClick={user ? (e) => { e.preventDefault(); handleLogout(); } : undefined}
+                      className={cn(
+                        "flex items-center gap-4 transition-colors hover:text-primary",
+                        (pathname.startsWith('/login') || pathname.startsWith('/admin')) && !user ? "text-primary" : "text-muted-foreground"
+                      )}
+                    >
+                      {user ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}
+                      <span>{user ? 'Logout' : 'Login'}</span>
+                    </Link>
+                </SheetClose>
               </nav>
               <div className="absolute bottom-8 left-0 right-0 px-6">
                   <SheetClose asChild>
-                    <Button asChild className="w-full"><Link href="#">Contact Us</Link></Button>
+                    <Button asChild className="w-full">
+                      <Link href="#">
+                        <Phone />
+                        Contact Us
+                      </Link>
+                    </Button>
                   </SheetClose>
               </div>
             </SheetContent>
