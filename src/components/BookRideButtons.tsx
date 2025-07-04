@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ export default function BookRideButtons({ location }: BookRideButtonsProps) {
   const { lat, lng } = location;
   const uberUrl = `https://m.uber.com/ul/?action=setPickup&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&pickup=my_location`;
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  const rapidoUrl = `https://www.google.com/search?q=Rapido+bike+taxi`; // Fallback as no universal link exists
+  const rapidoUrl = "https://rapido.bike/Home";
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
