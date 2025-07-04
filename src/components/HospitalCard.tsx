@@ -96,7 +96,7 @@ export default function HospitalCard({ hospital, distance }: HospitalCardProps) 
                     <ShieldCheck className="h-3.5 w-3.5" /> {hygieneText}: {hygiene.rating.toFixed(1)}
                 </Badge>
                 {oxygen.available ? (
-                    <Badge className="bg-green-100 text-green-800 flex items-center gap-1.5">
+                    <Badge variant="outline" className="border-accent/50 bg-accent/10 text-accent flex items-center gap-1.5">
                         <Droplet className="h-3.5 w-3.5" /> Oxygen Available
                     </Badge>
                 ) : (
