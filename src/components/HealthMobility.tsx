@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -113,7 +114,7 @@ export default function HealthMobility() {
     };
 
     const uberLink = location ? `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${location.lat}&pickup[longitude]=${location.lng}` : "#";
-    const rapidoLink = location ? `https://book.rapido.bike/?lat=${location.lat}&lng=${location.lng}` : "#";
+    const rapidoLink = "https://www.google.com/search?q=Rapido+bike+taxi"; // Fallback as universal link is unreliable
 
     return (
         <div className="space-y-12">
@@ -129,7 +130,7 @@ export default function HealthMobility() {
                                 <UberIcon /> <span className="ml-2">Book Uber</span>
                             </a>
                         </Button>
-                        <Button asChild className="bg-yellow-400 text-black hover:bg-yellow-500" size="lg" disabled={!location}>
+                        <Button asChild className="bg-yellow-400 text-black hover:bg-yellow-500" size="lg">
                             <a href={rapidoLink} target="_blank" rel="noopener noreferrer">
                                <RapidoIcon /> <span className="ml-2">Book Rapido</span>
                             </a>
