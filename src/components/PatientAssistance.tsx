@@ -11,8 +11,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send } from 'lucide-react';
+import { LoaderCircle, CalendarPlus, Home, Stethoscope, Search, ArrowLeft, Send, BedDouble, Droplet, UserCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Badge } from '@/components/ui/badge';
 
 type ServiceType = 'Appointment' | 'Home Service';
 type Step = 'initial' | 'form' | 'results';
@@ -49,8 +56,8 @@ export default function PatientAssistance() {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!hospitalName.trim() || !symptoms.trim()) {
-            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter a hospital name and symptoms.' });
+        if (!hospitalName.trim() && !symptoms.trim()) {
+            toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter a hospital name or symptoms.' });
             return;
         }
 
@@ -59,13 +66,15 @@ export default function PatientAssistance() {
 
         try {
             const hospitalsRef = collection(db, 'hospitals');
-            // Firestore doesn't support case-insensitive or partial text search natively.
             // This query is a common workaround that finds documents where the 'name' field starts with the search term.
-            const q = query(
-                hospitalsRef,
-                where('name', '>=', hospitalName),
-                where('name', '<=', hospitalName + '\uf8ff')
-            );
+            const q = hospitalName.trim() 
+                ? query(
+                    hospitalsRef,
+                    where('name', '>=', hospitalName),
+                    where('name', '<=', hospitalName + '\uf8ff')
+                )
+                : query(hospitalsRef);
+
 
             const querySnapshot = await getDocs(q);
             const results: HospitalWithId[] = [];
@@ -73,14 +82,22 @@ export default function PatientAssistance() {
                 results.push({ ...(doc.data() as Hospital), firestoreId: doc.id });
             });
             
-            const lowercasedSymptoms = symptoms.toLowerCase();
-            const filteredResults = results.filter(h => 
-                h.specialties?.some(s => lowercasedSymptoms.includes(s.toLowerCase())) ||
-                h.services?.some(s => lowercasedSymptoms.includes(s.toLowerCase()))
-            );
+            if (symptoms.trim()) {
+                const lowercasedSymptoms = symptoms.toLowerCase();
+                const filteredResults = results.filter(h => 
+                    h.specialties?.some(s => lowercasedSymptoms.includes(s.toLowerCase())) ||
+                    h.services?.some(s => lowercasedSymptoms.includes(s.toLowerCase()))
+                );
 
-            // If specialty filter yields no results, fall back to just name search
-            setSearchResults(filteredResults.length > 0 ? filteredResults : results);
+                // If specialty filter yields no results, fall back to just name search
+                if (filteredResults.length > 0 || !hospitalName.trim()) {
+                    setSearchResults(filteredResults);
+                } else {
+                    setSearchResults(results);
+                }
+            } else {
+                setSearchResults(results);
+            }
             setStep('results');
 
         } catch (error) {
@@ -105,7 +122,7 @@ export default function PatientAssistance() {
                 symptoms: symptoms,
                 serviceType: serviceType,
                 status: 'pending',
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
             });
 
             toast({
@@ -118,7 +135,8 @@ export default function PatientAssistance() {
 
         } catch (error) {
             console.error("Error confirming booking:", error);
-            toast({ variant: 'destructive', title: 'Booking Failed', description: 'Could not complete your request. Please try again. You may need to update Firestore security rules.' });
+            const errorMessage = (error as any)?.message || 'Could not complete your request. Please check Firestore security rules.';
+            toast({ variant: 'destructive', title: 'Booking Failed', description: errorMessage });
         } finally {
             setIsBooking(null);
         }
@@ -166,8 +184,8 @@ export default function PatientAssistance() {
                 <CardContent>
                     <form onSubmit={handleSearch} className="space-y-6">
                         <div className="space-y-2">
-                            <Label htmlFor="hospital-name">Hospital Name</Label>
-                            <Input id="hospital-name" placeholder="e.g., City General Hospital" value={hospitalName} onChange={e => setHospitalName(e.target.value)} required />
+                            <Label htmlFor="hospital-name">Hospital Name (optional)</Label>
+                            <Input id="hospital-name" placeholder="e.g., City General Hospital" value={hospitalName} onChange={e => setHospitalName(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="symptoms">Symptoms or Service Needed</Label>
@@ -192,29 +210,63 @@ export default function PatientAssistance() {
                 </div>
 
                 {searchResults.length > 0 ? (
-                    <div className="space-y-4">
+                    <Accordion type="single" collapsible className="w-full space-y-4">
                         {searchResults.map(hospital => (
-                            <Card key={hospital.firestoreId} className="flex flex-col sm:flex-row items-center justify-between p-4">
-                                <div>
-                                    <h3 className="font-bold text-lg">{hospital.name}</h3>
-                                    <p className="text-sm text-muted-foreground">{hospital.address}</p>
-                                </div>
-                                <Button 
-                                    onClick={() => handleConfirmBooking(hospital)} 
-                                    disabled={isBooking !== null}
-                                    className="mt-4 sm:mt-0 w-full sm:w-auto"
-                                >
-                                    {isBooking === hospital.firestoreId ? <LoaderCircle className="animate-spin" /> : <><Send className="mr-2"/>Confirm {serviceType}</>}
-                                </Button>
-                            </Card>
+                            <AccordionItem value={hospital.firestoreId} key={hospital.firestoreId} className="border-b-0">
+                                <Card className="overflow-hidden">
+                                <AccordionTrigger className="p-4 hover:no-underline bg-muted/50">
+                                    <div className="text-left">
+                                        <h3 className="font-bold text-lg text-primary">{hospital.name}</h3>
+                                        <p className="text-sm text-muted-foreground">{hospital.address}</p>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                        <div>
+                                            <h4 className="font-semibold mb-2">Live Status</h4>
+                                            <div className="space-y-2 text-sm">
+                                                <p className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-primary"/> General Beds: {hospital.beds.general.available} / {hospital.beds.general.total}</p>
+                                                <p className="flex items-center gap-2"><BedDouble className="w-4 h-4 text-destructive"/> ICU Beds: {hospital.beds.icu.available} / {hospital.beds.icu.total}</p>
+                                                <p className="flex items-center gap-2"><Droplet className={`w-4 h-4 ${hospital.oxygen.available ? 'text-green-500' : 'text-destructive'}`}/> Oxygen: {hospital.oxygen.available ? 'Available' : 'Low'}</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold mb-2">Doctors on Staff</h4>
+                                            {hospital.doctors && hospital.doctors.length > 0 ? (
+                                                <ul className="space-y-2 text-sm">
+                                                    {hospital.doctors.map(doc => (
+                                                        <li key={doc.name} className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <UserCheck className="w-4 h-4 text-primary" />
+                                                                <span>{doc.name} <span className="text-muted-foreground">({doc.specialization})</span></span>
+                                                            </div>
+                                                            <Badge variant="secondary">{doc.availability}</Badge>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground">No doctor information available.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        onClick={() => handleConfirmBooking(hospital)} 
+                                        disabled={isBooking !== null}
+                                        className="w-full sm:w-auto"
+                                    >
+                                        {isBooking === hospital.firestoreId ? <LoaderCircle className="animate-spin" /> : <><Send className="mr-2"/>Confirm {serviceType}</>}
+                                    </Button>
+                                </AccordionContent>
+                                </Card>
+                            </AccordionItem>
                         ))}
-                    </div>
+                    </Accordion>
                 ) : (
                     <Card className="text-center p-12">
                          <Stethoscope className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
                         <h3 className="text-xl font-bold font-headline">No Matching Hospitals Found</h3>
                         <p className="text-muted-foreground mt-2">
-                            We couldn't find any hospitals matching your search for "{hospitalName}".
+                            We couldn't find any hospitals matching your search criteria.
                             <br/>
                             Try a broader search or check your spelling.
                         </p>
