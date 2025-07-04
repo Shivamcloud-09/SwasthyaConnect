@@ -12,11 +12,18 @@ import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const navLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '#', label: 'About', icon: Info },
   { href: '/emergency', label: 'Emergency Assistance', icon: Siren },
+  { href: '#', label: 'Contact Us', icon: Phone },
 ];
 
 export default function Header() {
@@ -58,41 +65,55 @@ export default function Header() {
           <span className="text-2xl font-extrabold tracking-tight font-headline">SwasthyaConnect</span>
         </Link>
         
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6 text-base font-medium">
-          {navLinks.map(link => (
-            <Link 
-              key={link.href} 
-              href={link.href}
-              className={cn(
-                "flex items-center gap-2 transition-colors hover:text-primary",
-                pathname === link.href ? "text-primary font-semibold" : "text-muted-foreground"
-              )}
-            >
-              <link.icon />
-              {link.label}
-            </Link>
-          ))}
-           {user ? (
-            <Button variant="ghost" onClick={handleLogout}>
-              <LogOut />
-              Logout
-            </Button>
-          ) : (
-            <Link href="/login" className={cn("flex items-center gap-2 transition-colors hover:text-primary", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "text-primary font-semibold" : "text-muted-foreground")}>
-                <LogIn />
-                Login
-            </Link>
-          )}
-        </nav>
-
-        <div className="hidden md:flex items-center gap-3">
-          <Button asChild>
-            <Link href="#">
-              <Phone />
-              Contact Us
-            </Link>
-          </Button>
+        {/* Desktop Navigation - Icon only with Tooltips */}
+        <div className="hidden md:flex items-center gap-2">
+          <TooltipProvider>
+            {navLinks.map(link => (
+              <Tooltip key={link.label}>
+                <TooltipTrigger asChild>
+                  <Button asChild variant="ghost" size="icon" className={cn(
+                      "rounded-full",
+                      pathname === link.href ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+                    )}>
+                    <Link href={link.href}>
+                      <link.icon className="h-5 w-5" />
+                      <span className="sr-only">{link.label}</span>
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{link.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+            {user ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                   <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full">
+                      <LogOut className="h-5 w-5" />
+                      <span className="sr-only">Logout</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Logout</p>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <Tooltip>
+                 <TooltipTrigger asChild>
+                  <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary")}>
+                    <Link href="/login">
+                        <LogIn className="h-5 w-5" />
+                        <span className="sr-only">Login</span>
+                    </Link>
+                  </Button>
+                 </TooltipTrigger>
+                 <TooltipContent>
+                  <p>Login</p>
+                 </TooltipContent>
+              </Tooltip>
+            )}
+          </TooltipProvider>
           <ThemeToggle />
         </div>
 
@@ -137,16 +158,6 @@ export default function Header() {
                     </Link>
                 </SheetClose>
               </nav>
-              <div className="absolute bottom-8 left-0 right-0 px-6">
-                  <SheetClose asChild>
-                    <Button asChild className="w-full">
-                      <Link href="#">
-                        <Phone />
-                        Contact Us
-                      </Link>
-                    </Button>
-                  </SheetClose>
-              </div>
             </SheetContent>
           </Sheet>
         </div>
