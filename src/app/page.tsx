@@ -11,7 +11,7 @@ const services = [
         icon: Stethoscope,
         title: "Patient Assistance",
         description: "Book appointments or arrange home services easily through our connected system.",
-        href: "/login"
+        href: "/assistance"
     },
     {
         icon: Ambulance,
