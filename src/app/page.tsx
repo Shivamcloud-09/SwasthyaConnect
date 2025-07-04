@@ -80,11 +80,23 @@ function ServiceCard({ icon: Icon, title, description, href }: ServiceCardProps)
 export default function Home() {
   return (
     <>
-      <section className="relative w-full bg-muted/30">
-        <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-2 gap-8 items-center min-h-[calc(100vh-80px)] py-12">
+      <section className="relative w-full bg-background">
+        <div className="absolute inset-0">
+          <Image
+            src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=1920&auto=format&fit=crop"
+            alt="Hospital background"
+            fill
+            className="object-cover"
+            data-ai-hint="hospital building exterior"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
+        </div>
+        
+        <div className="container mx-auto px-4 h-full">
+            <div className="grid md:grid-cols-2 gap-8 items-center min-h-[calc(100vh-80px)]">
                 {/* Text Content */}
-                <div className="text-center md:text-left z-10">
+                <div className="relative z-10 text-center md:text-left py-12">
                   <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-headline tracking-tight">
                     Smarter Health.
                     <br />
@@ -102,27 +114,18 @@ export default function Home() {
                       </Button>
                   </div>
                 </div>
+                
                 {/* Image Content */}
-                <div className="relative h-80 md:h-[500px] w-full">
-                   <Image
-                      src="https://images.unsplash.com/photo-1551601651-2a8555f1a136?q=80&w=1920&auto=format&fit=crop"
-                      alt="Hospital background"
+                <div className="relative h-full w-full self-end hidden md:block">
+                  <div className="absolute bottom-0 right-0 h-[80vh] w-full max-w-md lg:max-w-lg">
+                    <Image
+                      src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16e?q=80&w=1920&auto=format&fit=crop"
+                      alt="Friendly doctor"
                       fill
-                      className="object-cover z-0 opacity-20 blur-sm rounded-lg"
-                      data-ai-hint="hospital building exterior"
+                      className="object-contain object-bottom"
+                      data-ai-hint="doctor smiling"
                       priority
                     />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                     <div className="relative h-full w-full max-w-sm">
-                        <Image
-                            src="https://placehold.co/600x800.png"
-                            alt="Friendly doctor"
-                            fill
-                            className="object-contain"
-                            data-ai-hint="doctor smiling"
-                            priority
-                        />
-                     </div>
                   </div>
                 </div>
             </div>
