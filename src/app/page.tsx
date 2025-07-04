@@ -23,7 +23,7 @@ const services = [
         icon: Car,
         title: "Health Mobility",
         description: "Book transport via Uber, Ola, or Rapido for hospital or pharmacy visits.",
-        href: "/hospitals/1"
+        href: "/health-mobility"
     },
     {
         icon: ClipboardPlus,
