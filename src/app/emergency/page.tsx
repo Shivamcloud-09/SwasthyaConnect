@@ -41,11 +41,15 @@ export default function EmergencyPage() {
           if (res.ok) {
             toast({ title: 'SOS Triggered!', description: 'Your location has been sent to our emergency response team.' });
           } else {
-            throw new Error('Failed to send SOS');
+             // Try to parse the error message from the server for better debugging
+            const errorData = await res.json().catch(() => ({}));
+            const serverMessage = errorData.details || `Server responded with status ${res.status}.`;
+            throw new Error(serverMessage);
           }
         } catch (error) {
           console.error("SOS Error:", error);
-          toast({ variant: 'destructive', title: 'SOS Failed', description: 'Could not send your location. Please try calling directly.' });
+          const description = error instanceof Error ? error.message : 'Could not send your location. Please try calling directly.';
+          toast({ variant: 'destructive', title: 'SOS Failed', description });
         }
       },
       (error) => {
