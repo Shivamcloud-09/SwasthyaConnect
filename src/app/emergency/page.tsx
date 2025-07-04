@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -52,6 +53,30 @@ export default function EmergencyPage() {
       }
     );
   };
+
+  const handleWhatsAppLocation = () => {
+    if (!navigator.geolocation) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Geolocation is not supported by your browser.' });
+      return;
+    }
+    toast({ title: "Getting Location...", description: "Please wait while we fetch your coordinates for WhatsApp." });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const message = `🚨 Emergency! Please help.\nMy live location:\nhttps://www.google.com/maps?q=${latitude},${longitude}`;
+        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+      },
+      (error) => {
+        console.error("Location error for WhatsApp:", error);
+        toast({ variant: 'destructive', title: 'Location Error', description: 'Could not get your location. Please share it manually.' });
+        // Fallback to old behavior if location fails
+        const fallbackUrl = 'https://wa.me/?text=Emergency%20Help%20Needed.%20My%20location%20is...';
+        window.open(fallbackUrl, '_blank');
+      }
+    );
+  };
   
   const emergencyServices = [
     {
@@ -74,9 +99,9 @@ export default function EmergencyPage() {
     },
     {
       title: 'WhatsApp Help',
-      description: 'Send a pre-filled emergency message via WhatsApp.',
+      description: 'Send a pre-filled emergency message with your location via WhatsApp.',
       icon: MessageSquare,
-      action: () => window.open('https://wa.me/?text=Emergency%20Help%20Needed.%20My%20location%20is...', '_blank'),
+      action: handleWhatsAppLocation,
     },
     {
       title: 'View Live Location',
