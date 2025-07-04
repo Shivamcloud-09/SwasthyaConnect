@@ -1,0 +1,184 @@
+
+'use client';
+
+import React, { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Ambulance, ShieldAlert, Flame, MessageSquare, Map as MapIcon, Siren, Phone, ArrowLeft } from 'lucide-react';
+
+// Leaflet imports - dynamically imported to avoid SSR issues
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+
+export default function EmergencyPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const mapRef = useRef(null);
+  const mapInstance = useRef<L.Map | null>(null);
+
+  const handleSos = async () => {
+    if (!navigator.geolocation) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Geolocation is not supported by your browser.' });
+      return;
+    }
+    toast({ title: "Triggering SOS...", description: "Getting your location. Please wait." });
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch('/api/sos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              phone: 'N/A', // Placeholder as user isn't logged in to provide number
+            }),
+          });
+          if (res.ok) {
+            toast({ title: 'SOS Triggered!', description: 'Your location has been sent to our emergency response team.' });
+          } else {
+            throw new Error('Failed to send SOS');
+          }
+        } catch (error) {
+          console.error("SOS Error:", error);
+          toast({ variant: 'destructive', title: 'SOS Failed', description: 'Could not send your location. Please try calling directly.' });
+        }
+      },
+      (error) => {
+        toast({ variant: 'destructive', title: 'Location Error', description: 'Could not get your location. Please enable location services.' });
+      }
+    );
+  };
+  
+  const emergencyServices = [
+    {
+      title: 'Call Ambulance',
+      description: 'Instantly call for an ambulance in a medical emergency.',
+      icon: Ambulance,
+      action: () => window.open('tel:102', '_self'),
+    },
+    {
+      title: 'Police Assistance',
+      description: 'Reach your nearest police station for any safety concerns.',
+      icon: ShieldAlert,
+      action: () => window.open('tel:100', '_self'),
+    },
+    {
+      title: 'Fire Emergency',
+      description: 'Contact the fire department in case of a fire.',
+      icon: Flame,
+      action: () => window.open('tel:101', '_self'),
+    },
+    {
+      title: 'WhatsApp Help',
+      description: 'Send a pre-filled emergency message via WhatsApp.',
+      icon: MessageSquare,
+      action: () => window.open('https://wa.me/?text=Emergency%20Help%20Needed.%20My%20location%20is...', '_blank'),
+    },
+    {
+      title: 'View Live Location',
+      description: 'Scroll to a map showing your current real-time location.',
+      icon: MapIcon,
+      action: () => {
+        const el = document.getElementById('map-container');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      },
+    },
+    {
+      title: 'SOS Alert',
+      description: 'Trigger an SOS alert and store your location with us.',
+      icon: Siren,
+      action: handleSos,
+    },
+  ];
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !mapRef.current || mapInstance.current) return;
+
+    // Fix for default icon path issue with webpack
+    const defaultIcon = new L.Icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+    L.Marker.prototype.options.icon = defaultIcon;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        if (mapRef.current && !mapInstance.current) {
+            mapInstance.current = L.map(mapRef.current).setView([latitude, longitude], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }).addTo(mapInstance.current);
+            L.marker([latitude, longitude]).addTo(mapInstance.current).bindPopup('You are here.').openPopup();
+        }
+      },
+      (error) => {
+        console.error('Could not get geolocation:', error);
+        toast({
+            variant: "destructive",
+            title: "Location Disabled",
+            description: "Your live location map could not be displayed."
+        })
+      }
+    );
+
+    return () => {
+        if (mapInstance.current) {
+            mapInstance.current.remove();
+            mapInstance.current = null;
+        }
+    }
+  }, [toast]);
+
+  return (
+    <div className="bg-background">
+      <div className="container mx-auto px-4 py-12 md:py-16">
+        <div className="text-center max-w-3xl mx-auto mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-4">Emergency Services</h1>
+          <p className="text-lg text-muted-foreground">Instant access to vital emergency support when you need it most.</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {emergencyServices.map((service, i) => (
+            <Card
+              key={i}
+              onClick={service.action}
+              className="cursor-pointer bg-card/50 hover:bg-card/90 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+            >
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="bg-destructive/10 text-destructive p-3 rounded-full group-hover:bg-destructive group-hover:text-destructive-foreground transition-colors duration-300">
+                  <service.icon className="w-6 h-6" />
+                </div>
+                <CardTitle className="font-headline text-xl">{service.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>{service.description}</CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div id="map-container" className="mt-16 pt-8 border-t">
+           <h2 className="text-3xl font-bold font-headline text-center text-primary mb-6">Your Live Location</h2>
+           <div id="map" ref={mapRef} className="w-full h-96 rounded-lg overflow-hidden border-2 border-primary/20 shadow-xl" />
+        </div>
+
+        <div className="mt-12 text-center">
+            <Button onClick={() => router.push('/')} variant="outline">
+                <ArrowLeft className="mr-2" /> Back to Home
+            </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

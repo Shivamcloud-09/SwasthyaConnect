@@ -76,49 +76,13 @@ const Header = () => {
               </Tooltip>
 
               <Tooltip>
-                <DropdownMenu>
-                  <TooltipTrigger asChild>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label="Emergency Contacts">
+                <TooltipTrigger asChild>
+                   <Button asChild variant={pathname === '/emergency' ? 'secondary' : 'ghost'} size="icon" aria-label="Emergency Assistance">
+                      <Link href="/emergency">
                         <Siren className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                  </TooltipTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Emergency Numbers</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <a href="tel:102" className="flex items-center gap-2 w-full cursor-pointer">
-                        <Ambulance className="h-4 w-4" />
-                        <span>Ambulance (102)</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="tel:112" className="flex items-center gap-2 w-full cursor-pointer">
-                        <ShieldAlert className="h-4 w-4" />
-                        <span>Police (112)</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="tel:101" className="flex items-center gap-2 w-full cursor-pointer">
-                        <Flame className="h-4 w-4" />
-                        <span>Fire (101)</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="tel:108" className="flex items-center gap-2 w-full cursor-pointer">
-                        <LifeBuoy className="h-4 w-4" />
-                        <span>Disaster Mgmt (108)</span>
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a href="tel:1091" className="flex items-center gap-2 w-full cursor-pointer">
-                        <HeartHandshake className="h-4 w-4" />
-                        <span>Women Helpline (1091)</span>
-                      </a>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      </Link>
+                    </Button>
+                </TooltipTrigger>
                 <TooltipContent>
                   <p>Emergency Assistance</p>
                 </TooltipContent>
