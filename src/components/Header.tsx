@@ -19,10 +19,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-const navLinks = [
+// Links that will be visible with text on desktop
+const mainNavLinks = [
   { href: '/', label: 'Home', icon: Home },
+  { href: '/emergency', label: 'Emergency', icon: Siren },
   { href: '#', label: 'About', icon: Info },
+];
+
+// All links for the mobile drawer
+const mobileNavLinks = [
+  { href: '/', label: 'Home', icon: Home },
   { href: '/emergency', label: 'Emergency Assistance', icon: Siren },
+  { href: '#', label: 'About', icon: Info },
   { href: '#', label: 'Contact Us', icon: Phone },
 ];
 
@@ -60,32 +68,48 @@ export default function Header() {
   return (
     <header className="bg-background/95 sticky top-0 z-40 w-full border-b backdrop-blur-sm">
       <div className="container mx-auto px-4 h-20 flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2">
-          <Hospital className="w-7 h-7 text-primary" />
-          <span className="text-2xl font-extrabold tracking-tight font-headline">SwasthyaConnect</span>
-        </Link>
+        {/* Left-aligned items */}
+        <div className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 mr-4">
+                <Hospital className="w-7 h-7 text-primary" />
+                <span className="text-2xl font-extrabold tracking-tight font-headline">SwasthyaConnect</span>
+            </Link>
+            
+            {/* Desktop Main Navigation (with text) */}
+            <nav className="hidden md:flex items-center gap-1">
+                {mainNavLinks.map(link => (
+                    <Button asChild variant="ghost" key={link.label} className={cn(
+                        "text-muted-foreground hover:text-primary",
+                         pathname === link.href && "text-primary bg-muted"
+                    )}>
+                        <Link href={link.href} className="flex items-center">
+                            <link.icon className="h-4 w-4 mr-2" />
+                            {link.label}
+                        </Link>
+                    </Button>
+                ))}
+            </nav>
+        </div>
         
-        {/* Desktop Navigation - Icon only with Tooltips */}
+        {/* Right-aligned Icon Navigation */}
         <div className="hidden md:flex items-center gap-2">
           <TooltipProvider>
-            {navLinks.map(link => (
-              <Tooltip key={link.label}>
+            {/* Contact Us Icon */}
+            <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button asChild variant="ghost" size="icon" className={cn(
-                      "rounded-full",
-                      pathname === link.href ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
-                    )}>
-                    <Link href={link.href}>
-                      <link.icon className="h-5 w-5" />
-                      <span className="sr-only">{link.label}</span>
-                    </Link>
-                  </Button>
+                    <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-primary rounded-full">
+                        <Link href="#">
+                            <Phone className="h-5 w-5" />
+                            <span className="sr-only">Contact Us</span>
+                        </Link>
+                    </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{link.label}</p>
+                    <p>Contact Us</p>
                 </TooltipContent>
-              </Tooltip>
-            ))}
+            </Tooltip>
+
+            {/* Login/Logout Icon */}
             {user ? (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -117,7 +141,7 @@ export default function Header() {
           <ThemeToggle />
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation (Sheet) */}
         <div className="md:hidden flex items-center gap-2">
           <ThemeToggle />
           <Sheet>
@@ -129,7 +153,7 @@ export default function Header() {
             </SheetTrigger>
             <SheetContent>
               <nav className="flex flex-col gap-6 text-lg font-medium mt-8">
-                {navLinks.map(link => (
+                {mobileNavLinks.map(link => (
                   <SheetClose asChild key={link.href}>
                     <Link 
                       href={link.href}
