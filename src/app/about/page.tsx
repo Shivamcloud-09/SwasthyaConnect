@@ -80,6 +80,10 @@ export default function AboutPage() {
                         <Mail className="h-4 w-4" />
                         <a href="mailto:syedhamishnehal121@gmail.com" className="hover:text-primary hover:underline">syedhamishnehal121@gmail.com</a>
                     </p>
+                    <p className="flex items-center justify-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        <a href="mailto:garvg8423@gmail.com" className="hover:text-primary hover:underline">garvg8423@gmail.com</a>
+                    </p>
                 </div>
             </div>
           </CardContent>
