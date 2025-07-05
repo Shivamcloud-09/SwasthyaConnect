@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState }from 'react';
@@ -12,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { auth, db } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
-import { collection, query, where, getDocs, doc, updateDoc, type DocumentData, getDoc, addDoc, writeBatch } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc, writeBatch } from "firebase/firestore";
 import { Skeleton } from './ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { LoaderCircle, Building, Wand2 } from 'lucide-react';
@@ -28,44 +27,72 @@ export default function AdminDashboard() {
     const [unclaimedHospitals, setUnclaimedHospitals] = useState<ManagedHospital[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isClaiming, setIsClaiming] = useState<string | null>(null); // Holds the ID of the hospital being claimed
+    const [isClaiming, setIsClaiming] = useState<string | null>(null);
     const isFirebaseConfigured = !!auth && !!db;
 
+    const seedDatabase = async () => {
+        if (!db) return;
+        toast({ title: "Setting Up Database", description: "Performing first-time setup..." });
+        try {
+            const batch = writeBatch(db);
+            const hospitalsRef = collection(db, "hospitals");
+            
+            initialHospitals.forEach(hospital => {
+                const { id, ...hospitalData } = hospital;
+                const docRef = doc(hospitalsRef);
+                batch.set(docRef, { ...hospitalData, adminUid: "" });
+            });
+
+            await batch.commit();
+            toast({ title: "Setup Complete!", description: "Curated hospitals have been added to the database." });
+        } catch (error) {
+            console.error("Error seeding database:", error);
+            toast({ variant: "destructive", title: "Setup Failed" });
+        }
+    };
+    
     const fetchHospitalData = async () => {
         if (!user || !db) return;
         setIsLoading(true);
 
-        // 1. Check for a hospital already assigned to this user
         const hospitalsRef = collection(db, "hospitals");
-        const q = query(hospitalsRef, where("adminUid", "==", user.uid));
-        const querySnapshot = await getDocs(q);
 
-        if (!querySnapshot.empty) {
-            const hospitalDoc = querySnapshot.docs[0];
+        // 1. Check if a hospital is assigned to the current user
+        const assignedQuery = query(hospitalsRef, where("adminUid", "==", user.uid));
+        const assignedSnapshot = await getDocs(assignedQuery);
+
+        if (!assignedSnapshot.empty) {
+            const hospitalDoc = assignedSnapshot.docs[0];
             setHospital({
                 ...(hospitalDoc.data() as Omit<Hospital, 'id'>),
                 firestoreId: hospitalDoc.id,
             });
+            setIsLoading(false);
+            return;
+        }
+
+        // 2. No hospital assigned. Check if the database needs to be seeded.
+        const allHospitalsSnapshot = await getDocs(hospitalsRef);
+        if (allHospitalsSnapshot.empty) {
+            await seedDatabase();
+            // After seeding, refetch all hospitals to find the unclaimed ones.
+            const newSnapshot = await getDocs(hospitalsRef);
+            const unclaimedList = newSnapshot.docs.map(doc => ({
+                ...(doc.data() as Omit<Hospital, 'id'>),
+                firestoreId: doc.id,
+            })).filter(h => !h.adminUid);
+            setUnclaimedHospitals(unclaimedList);
         } else {
-            // 2. If no hospital is assigned, fetch unclaimed hospitals
+            // 3. Database is already populated, find unclaimed hospitals.
             const unclaimedQuery = query(hospitalsRef, where("adminUid", "==", ""));
             const unclaimedSnapshot = await getDocs(unclaimedQuery);
             const unclaimedList = unclaimedSnapshot.docs.map(doc => ({
                 ...(doc.data() as Omit<Hospital, 'id'>),
                 firestoreId: doc.id,
             }));
-
-            // Seed the database if it's completely empty
-            const allHospitalsSnapshot = await getDocs(hospitalsRef);
-            if (unclaimedSnapshot.empty && allHospitalsSnapshot.empty) {
-                await seedDatabase();
-                // Re-fetch after seeding
-                fetchHospitalData();
-                return;
-            }
-            
             setUnclaimedHospitals(unclaimedList);
         }
+
         setIsLoading(false);
     };
 
@@ -76,39 +103,7 @@ export default function AdminDashboard() {
             router.push('/admin/login');
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, authLoading, db]);
-
-    const seedDatabase = async () => {
-        if (!db) return;
-        setIsLoading(true);
-        toast({ title: "Setting Up Database", description: "Performing first-time setup..." });
-        try {
-            const batch = writeBatch(db);
-            const hospitalsRef = collection(db, "hospitals");
-
-            // Check if collection is empty before seeding
-            const snapshot = await getDocs(hospitalsRef);
-            if (!snapshot.empty) {
-                toast({ variant: "destructive", title: "Setup Skipped", description: "Database already contains data." });
-                setIsLoading(false);
-                return;
-            }
-            
-            initialHospitals.forEach(hospital => {
-                const { id, ...hospitalData } = hospital; // Exclude the old numeric id
-                const docRef = doc(hospitalsRef); // Firestore generates a new ID
-                batch.set(docRef, { ...hospitalData, adminUid: "" }); // Add adminUid field
-            });
-
-            await batch.commit();
-            toast({ title: "Setup Complete!", description: "Curated hospitals have been added to the database." });
-        } catch (error) {
-            console.error("Error seeding database:", error);
-            toast({ variant: "destructive", title: "Setup Failed" });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    }, [user, authLoading, router, db]);
 
 
     const handleClaimHospital = async (hospitalId: string) => {
@@ -118,7 +113,6 @@ export default function AdminDashboard() {
             const hospitalRef = doc(db, "hospitals", hospitalId);
             await updateDoc(hospitalRef, { adminUid: user.uid });
             toast({ title: "Hospital Claimed!", description: "You can now manage this hospital." });
-            // Re-fetch data to show the dashboard
             await fetchHospitalData();
         } catch (error) {
             console.error("Error claiming hospital:", error);
@@ -187,7 +181,6 @@ export default function AdminDashboard() {
         )
     }
 
-    // Main Dashboard View
     if (hospital) {
         return (
             <div className="container mx-auto p-4 md:p-8">
@@ -230,7 +223,6 @@ export default function AdminDashboard() {
         );
     }
     
-    // Hospital Claiming View
     return (
         <div className="container mx-auto p-4 md:p-8">
             <div className="flex justify-between items-center mb-6">
