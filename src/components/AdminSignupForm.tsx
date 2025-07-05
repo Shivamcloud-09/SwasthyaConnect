@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -6,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, serverTimestamp, writeBatch, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,8 +60,12 @@ export default function AdminSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Create a corresponding admin document in Firestore
-            await addDoc(collection(db, "hospitalAdmins"), {
+            // Use a batch write to ensure all or nothing
+            const batch = writeBatch(db);
+
+            // 1. Create the admin document in the hospitalAdmins collection
+            const adminDocRef = doc(collection(db, "hospitalAdmins"));
+            batch.set(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
                 username: lowercasedUsername,
@@ -70,12 +73,40 @@ export default function AdminSignupForm() {
                 createdAt: serverTimestamp(),
             });
 
+            // 2. Create the hospital document in the hospitals collection and link it to the admin
+            const hospitalDocRef = doc(collection(db, "hospitals"));
+            batch.set(hospitalDocRef, {
+                adminUid: user.uid,
+                name: hospitalName,
+                address: "Not yet specified",
+                imageUrl: "https://placehold.co/600x400.png",
+                location: { lat: 0, lng: 0 },
+                timings: "Not yet specified",
+                contact: "Not yet specified",
+                services: [],
+                specialties: [],
+                beds: {
+                    general: { total: 0, available: 0 },
+                    icu: { total: 0, available: 0 },
+                },
+                oxygen: { available: false, lastChecked: "N/A" },
+                medicines: [],
+                doctors: [],
+                hygiene: { rating: 0, lastSanitized: "N/A" },
+                license: "Not yet specified",
+            });
+
+            await batch.commit();
+
             toast({
                 title: 'Admin Account Created!',
-                description: `Welcome, ${username}! Please log in to continue.`,
+                description: `Welcome, ${username}! Redirecting to your dashboard.`,
             });
-            router.push('/login/admin');
+            // Redirect to the dashboard directly since the hospital is now assigned.
+            router.push('/admin/dashboard');
+
         } catch (error: any) {
+            console.error("Admin Signup Error:", error);
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/email-already-in-use') {
                 description = 'This email address is already registered.';
