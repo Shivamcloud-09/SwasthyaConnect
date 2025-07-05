@@ -82,7 +82,7 @@ export default function Header() {
             <nav className="flex items-center gap-1">
                 {mainNavLinks.map(link => (
                     <Button asChild variant="ghost" key={link.label} className={cn(
-                        "text-muted-foreground hover:text-primary",
+                        "text-muted-foreground hover:bg-muted hover:text-primary",
                         pathname === link.href && "text-primary bg-muted"
                     )}>
                         <Link href={link.href} className="flex items-center">
@@ -99,7 +99,7 @@ export default function Header() {
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:text-primary rounded-full">
+                                <Button asChild variant="ghost" size="icon" className="text-muted-foreground hover:bg-muted hover:text-primary rounded-full">
                                     <Link href="#">
                                         <Phone className="h-5 w-5" />
                                         <span className="sr-only">Contact Us</span>
@@ -112,7 +112,7 @@ export default function Header() {
                         {user ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full">
+                                    <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-full hover:bg-muted hover:text-primary">
                                         <LogOut className="h-5 w-5" />
                                         <span className="sr-only">Logout</span>
                                     </Button>
@@ -122,7 +122,7 @@ export default function Header() {
                         ) : (
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary")}>
+                                    <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "bg-muted text-primary" : "text-muted-foreground hover:bg-muted hover:text-primary")}>
                                         <Link href="/login">
                                             <LogIn className="h-5 w-5" />
                                             <span className="sr-only">Login</span>
