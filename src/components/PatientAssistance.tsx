@@ -60,7 +60,7 @@ export default function PatientAssistance() {
                 title: 'Authentication Required',
                 description: 'Please log in to book a service.',
             });
-            router.push('/login');
+            router.push('/login/user');
             return;
         }
         setServiceType(type);

@@ -72,7 +72,7 @@ export default function AdminSignupForm() {
                 title: 'Admin Account Created!',
                 description: `Your hospital "${hospitalName}" is registered. Please log in to update its details.`,
             });
-            router.push('/admin/login');
+            router.push('/login/admin');
         } catch (error: any) {
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/email-already-in-use') {
@@ -126,7 +126,7 @@ export default function AdminSignupForm() {
                     )}
                     <div className="text-center text-sm">
                         Already have an account?{" "}
-                        <Link href="/admin/login" className="underline">
+                        <Link href="/login/admin" className="underline">
                             Sign in
                         </Link>
                     </div>

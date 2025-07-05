@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState }from 'react';
@@ -106,7 +107,7 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         if (!authLoading && !user) {
-            router.push('/admin/login');
+            router.push('/login/admin');
         } else if (!authLoading && user) {
             fetchHospitalData();
         }
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
         if (!auth) return;
         try {
             await signOut(auth);
-            router.push('/admin/login');
+            router.push('/login/admin');
             toast({ title: "Logged Out", description: "You have been successfully logged out." });
         } catch (error) {
             toast({ variant: 'destructive', title: 'Logout Failed' });

@@ -55,7 +55,10 @@ export default function Header() {
         title: "Logged Out",
         description: "You have been successfully logged out.",
       });
-      router.push("/login");
+      
+      const redirectPath = role === 'admin' ? '/login/admin' : '/login';
+      router.push(redirectPath);
+
     } catch (error) {
       toast({
         variant: "destructive",
@@ -156,7 +159,7 @@ export default function Header() {
                       ) : (
                           <Tooltip>
                               <TooltipTrigger asChild>
-                                  <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/login') || pathname.startsWith('/admin') ? "bg-muted text-primary" : "text-muted-foreground hover:bg-muted hover:text-primary")}>
+                                  <Button asChild variant="ghost" size="icon" className={cn("rounded-full", pathname.startsWith('/login') ? "bg-muted text-primary" : "text-muted-foreground hover:bg-muted hover:text-primary")}>
                                       <Link href="/login">
                                           <LogIn className="h-5 w-5" />
                                           <span className="sr-only">Login</span>
@@ -213,7 +216,7 @@ export default function Header() {
                       onClick={user ? (e) => { e.preventDefault(); handleLogout(); } : undefined}
                       className={cn(
                         "flex items-center gap-4 transition-colors hover:text-primary",
-                        (pathname.startsWith('/login') || pathname.startsWith('/admin')) && !user ? "text-primary" : "text-muted-foreground"
+                        pathname.startsWith('/login') && !user ? "text-primary" : "text-muted-foreground"
                       )}
                     >
                       {user ? <LogOut className="h-5 w-5" /> : <LogIn className="h-5 w-5" />}

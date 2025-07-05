@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -105,7 +106,7 @@ export default function HealthMobility() {
         e.preventDefault();
         if (!user) {
             toast({ variant: 'destructive', title: 'Not Logged In', description: 'Please log in to book an ambulance.' });
-            router.push('/login');
+            router.push('/login/user');
             return;
         }
         if (!location) {
