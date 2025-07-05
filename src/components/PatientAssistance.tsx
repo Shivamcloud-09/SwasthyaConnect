@@ -73,6 +73,10 @@ export default function PatientAssistance() {
             toast({ variant: 'destructive', title: 'Missing Information', description: 'Please enter a hospital name or symptoms.' });
             return;
         }
+        if (!db) {
+            toast({ variant: 'destructive', title: 'Database Error', description: 'Firebase is not configured.' });
+            return;
+        }
 
         setIsLoading(true);
         setSearchResults([]);
@@ -124,6 +128,10 @@ export default function PatientAssistance() {
     const handleFindNearby = async () => {
         if (!navigator.geolocation) {
             toast({ variant: 'destructive', title: 'Geolocation Not Supported' });
+            return;
+        }
+        if (!db) {
+            toast({ variant: 'destructive', title: 'Database Error', description: 'Firebase is not configured.' });
             return;
         }
     
