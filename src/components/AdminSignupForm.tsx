@@ -141,7 +141,7 @@ export default function AdminSignupForm() {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="password-signup-admin">Password</Label>
-                        <Input id="password-signup-admin" type="password" value={password} onChange={(e) => setPassword(e.targe.value)} required />
+                        <Input id="password-signup-admin" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="confirm-password-signup-admin">Confirm Password</Label>
