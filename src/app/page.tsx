@@ -31,7 +31,7 @@ const services = [
         icon: ClipboardPlus,
         title: "Digital Support",
         description: "Access digital prescriptions, medical records, and video consultations anytime.",
-        href: "/login"
+        href: "/digital-support"
     },
     {
         icon: Hospital,
