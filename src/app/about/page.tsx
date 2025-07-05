@@ -59,9 +59,9 @@ type ValueCardProps = {
 }
 
 const ValueCard = ({ icon: Icon, title, points }: ValueCardProps) => (
-  <Card className="bg-card/80 backdrop-blur-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full">
+  <Card className="group bg-card/80 backdrop-blur-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 h-full border-2 border-transparent hover:border-primary/30">
     <CardHeader className="flex flex-row items-center gap-4">
-      <div className="bg-primary/10 text-primary p-3 rounded-full flex-shrink-0">
+      <div className="bg-primary/10 text-primary p-3 rounded-lg flex-shrink-0 transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground">
         <Icon className="h-6 w-6" />
       </div>
       <CardTitle className="font-bold text-lg">{title}</CardTitle>
@@ -69,8 +69,8 @@ const ValueCard = ({ icon: Icon, title, points }: ValueCardProps) => (
     <CardContent>
       <ul className="space-y-3 text-muted-foreground">
         {points.map((point, index) => (
-          <li key={index} className="flex items-start gap-2">
-            <ChevronRight className="h-4 w-4 mt-1 text-primary shrink-0" />
+          <li key={index} className="flex items-start gap-3">
+            <ChevronRight className="h-5 w-5 mt-0.5 text-primary/70 shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
             <span>{point}</span>
           </li>
         ))}
@@ -142,15 +142,7 @@ export default function AboutPage() {
                 <div className="space-y-2 text-muted-foreground">
                     <p className="flex items-center justify-center gap-2">
                         <Mail className="h-4 w-4" />
-                        <a href="mailto:gupta29satyam@gmail.com" className="hover:text-primary hover:underline">gupta29satyam@gmail.com</a>
-                    </p>
-                    <p className="flex items-center justify-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        <a href="mailto:syedhamishnehal121@gmail.com" className="hover:text-primary hover:underline">syedhamishnehal121@gmail.com</a>
-                    </p>
-                    <p className="flex items-center justify-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        <a href="mailto:garvg8423@gmail.com" className="hover:text-primary hover:underline">garvg8423@gmail.com</a>
+                        <a href="mailto:contactswasthyaconnect@gmail.com" className="hover:text-primary hover:underline">contactswasthyaconnect@gmail.com</a>
                     </p>
                 </div>
             </div>
