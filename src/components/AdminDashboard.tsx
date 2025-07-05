@@ -28,11 +28,61 @@ export default function AdminDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isClaiming, setIsClaiming] = useState<string | null>(null);
+    const [needsSeeding, setNeedsSeeding] = useState(false);
+    const [isSeeding, setIsSeeding] = useState(false);
     const isFirebaseConfigured = !!auth && !!db;
+    
+    const fetchHospitalData = async () => {
+        if (!user || !db) {
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        setNeedsSeeding(false); // Reset on each fetch
 
-    const seedDatabase = async () => {
+        const hospitalsRef = collection(db, "hospitals");
+
+        // 1. Check for assigned hospital for the current user
+        const assignedQuery = query(hospitalsRef, where("adminUid", "==", user.uid));
+        const assignedSnapshot = await getDocs(assignedQuery);
+
+        if (!assignedSnapshot.empty) {
+            const hospitalDoc = assignedSnapshot.docs[0];
+            setHospital({
+                ...(hospitalDoc.data() as Omit<Hospital, 'id'>),
+                firestoreId: hospitalDoc.id,
+            });
+            setUnclaimedHospitals([]);
+            setIsLoading(false);
+            return;
+        }
+
+        // 2. No assigned hospital, check all hospitals
+        setHospital(null);
+        const allHospitalsSnapshot = await getDocs(hospitalsRef);
+
+        if (allHospitalsSnapshot.empty) {
+            // The database has no hospitals at all, so it needs to be seeded.
+            setNeedsSeeding(true);
+            setUnclaimedHospitals([]);
+        } else {
+            // Find hospitals that are not yet claimed by any admin
+            const unclaimedList = allHospitalsSnapshot.docs
+                .map(doc => ({
+                    ...(doc.data() as Omit<Hospital, 'id'>),
+                    firestoreId: doc.id,
+                }))
+                .filter(h => !h.adminUid);
+            setUnclaimedHospitals(unclaimedList);
+        }
+
+        setIsLoading(false);
+    };
+    
+    const handleSeedDatabase = async () => {
         if (!db) return;
-        toast({ title: "Setting Up Database", description: "Performing first-time setup..." });
+        setIsSeeding(true);
+        toast({ title: "Setting Up Database", description: "This may take a moment..." });
         try {
             const batch = writeBatch(db);
             const hospitalsRef = collection(db, "hospitals");
@@ -44,66 +94,24 @@ export default function AdminDashboard() {
             });
 
             await batch.commit();
-            toast({ title: "Setup Complete!", description: "Curated hospitals have been added to the database." });
+            toast({ title: "Setup Complete!", description: "Curated hospitals have been added." });
+            await fetchHospitalData(); // Refetch data to show the new list
         } catch (error) {
             console.error("Error seeding database:", error);
-            toast({ variant: "destructive", title: "Setup Failed" });
+            toast({ variant: "destructive", title: "Setup Failed", description: "Could not seed the database." });
+        } finally {
+            setIsSeeding(false);
         }
-    };
-    
-    const fetchHospitalData = async () => {
-        if (!user || !db) return;
-        setIsLoading(true);
-
-        const hospitalsRef = collection(db, "hospitals");
-
-        // 1. Check if a hospital is assigned to the current user
-        const assignedQuery = query(hospitalsRef, where("adminUid", "==", user.uid));
-        const assignedSnapshot = await getDocs(assignedQuery);
-
-        if (!assignedSnapshot.empty) {
-            const hospitalDoc = assignedSnapshot.docs[0];
-            setHospital({
-                ...(hospitalDoc.data() as Omit<Hospital, 'id'>),
-                firestoreId: hospitalDoc.id,
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        // 2. No hospital assigned. Check if the database needs to be seeded.
-        const allHospitalsSnapshot = await getDocs(hospitalsRef);
-        if (allHospitalsSnapshot.empty) {
-            await seedDatabase();
-            // After seeding, refetch all hospitals to find the unclaimed ones.
-            const newSnapshot = await getDocs(hospitalsRef);
-            const unclaimedList = newSnapshot.docs.map(doc => ({
-                ...(doc.data() as Omit<Hospital, 'id'>),
-                firestoreId: doc.id,
-            })).filter(h => !h.adminUid);
-            setUnclaimedHospitals(unclaimedList);
-        } else {
-            // 3. Database is already populated, find unclaimed hospitals.
-            const unclaimedQuery = query(hospitalsRef, where("adminUid", "==", ""));
-            const unclaimedSnapshot = await getDocs(unclaimedQuery);
-            const unclaimedList = unclaimedSnapshot.docs.map(doc => ({
-                ...(doc.data() as Omit<Hospital, 'id'>),
-                firestoreId: doc.id,
-            }));
-            setUnclaimedHospitals(unclaimedList);
-        }
-
-        setIsLoading(false);
     };
 
     useEffect(() => {
-        if (!authLoading && user && db) {
-            fetchHospitalData();
-        } else if (!authLoading && !user) {
+        if (!authLoading && !user) {
             router.push('/admin/login');
+        } else if (!authLoading && user) {
+            fetchHospitalData();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, authLoading, router, db]);
+    }, [user, authLoading]);
 
 
     const handleClaimHospital = async (hospitalId: string) => {
@@ -232,10 +240,23 @@ export default function AdminDashboard() {
             <Card>
                 <CardHeader>
                     <CardTitle>Claim a Hospital</CardTitle>
-                    <CardDescription>Your account is not linked to a hospital. Choose a hospital from the list to manage it.</CardDescription>
+                    <CardDescription>
+                         {needsSeeding 
+                            ? "The hospital database is empty. Add the initial set of hospitals to begin."
+                            : "Your account is not linked to a hospital. Choose a hospital from the list to manage it."}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {unclaimedHospitals.length > 0 ? (
+                    {needsSeeding ? (
+                         <div className="text-center py-10">
+                            <Wand2 className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <h3 className="mt-4 text-lg font-medium">Initial Database Setup</h3>
+                            <p className="mt-1 text-sm text-muted-foreground">Add the default list of curated hospitals to get started.</p>
+                            <Button onClick={handleSeedDatabase} disabled={isSeeding} className="mt-4">
+                                {isSeeding ? <LoaderCircle className="animate-spin" /> : "Seed Database"}
+                            </Button>
+                        </div>
+                    ) : unclaimedHospitals.length > 0 ? (
                         <div className="space-y-4">
                             {unclaimedHospitals.map(h => (
                                 <div key={h.firestoreId} className="flex items-center justify-between p-4 border rounded-lg">
