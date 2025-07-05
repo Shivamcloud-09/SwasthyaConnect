@@ -1,7 +1,83 @@
 
 import Image from 'next/image';
-import { Building, HeartHandshake, Users, Mail } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { Building, Users, Mail, UsersRound, ShieldCheck, Flag, Lightbulb, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+
+const values = [
+  {
+    icon: UsersRound,
+    title: 'Patient Centricity',
+    points: [
+      "Commit to 'best outcomes and experience' for our patients",
+      'Treat patients and their caregivers with compassion, care',
+      "Our patients' needs will come first",
+    ],
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Integrity',
+    points: [
+      'Be principled, open and honest',
+      "Model and live our 'Values'",
+      'Demonstrate moral courage to speak up and do the right things',
+    ],
+  },
+  {
+    icon: Users,
+    title: 'Teamwork',
+    points: [
+      'Proactively support each other and operate as one team',
+      'Respect and value people at all levels with different opinions, experiences and backgrounds',
+      'Demonstrate moral courage to speak up and do the right things',
+    ],
+  },
+  {
+    icon: Flag,
+    title: 'Ownership',
+    points: [
+      'Be responsible and take pride in our actions',
+      'Take initiative and go beyond the call of duty',
+      'Deliver commitment and agreement made',
+    ],
+  },
+  {
+    icon: Lightbulb,
+    title: 'Innovation',
+    points: [
+      'Continuously improve and innovate to exceed expectations',
+      "Adopt a 'can-do' attitude",
+      'Challenge ourselves to do things differently',
+    ],
+  },
+];
+
+type ValueCardProps = {
+  icon: LucideIcon;
+  title: string;
+  points: string[];
+}
+
+const ValueCard = ({ icon: Icon, title, points }: ValueCardProps) => (
+  <Card className="bg-card/80 backdrop-blur-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 h-full">
+    <CardHeader className="flex flex-row items-center gap-4">
+      <div className="bg-primary/10 text-primary p-3 rounded-full flex-shrink-0">
+        <Icon className="h-6 w-6" />
+      </div>
+      <CardTitle className="font-bold text-lg">{title}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <ul className="space-y-3 text-muted-foreground">
+        {points.map((point, index) => (
+          <li key={index} className="flex items-start gap-2">
+            <ChevronRight className="h-4 w-4 mt-1 text-primary shrink-0" />
+            <span>{point}</span>
+          </li>
+        ))}
+      </ul>
+    </CardContent>
+  </Card>
+)
 
 export default function AboutPage() {
   return (
@@ -32,31 +108,23 @@ export default function AboutPage() {
           </p>
         </div>
 
-        {/* Mission and Vision Section */}
-        <div className="grid md:grid-cols-2 gap-8 mb-16 items-start">
-          <Card className="bg-card/80 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold font-headline flex items-center gap-3"><HeartHandshake className="text-accent" /> Our Mission</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Our mission is to empower individuals with instant access to crucial healthcare information and services. From finding the nearest hospital with available beds to booking emergency transport, SwasthyaConnect is your reliable partner in health management, ensuring that quality care is always within reach.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/80 backdrop-blur-sm">
-            <CardHeader>
-             <CardTitle className="font-bold text-lg">Core Features</CardTitle>
-            </CardHeader>
-            <CardContent>
-             <ul className="list-disc list-inside text-muted-foreground space-y-2">
-                <li>Live hospital data tracking</li>
-                <li>Emergency service coordination</li>
-                <li>Seamless appointment booking</li>
-                <li>Integrated mobility solutions</li>
-             </ul>
-            </CardContent>
-          </Card>
+        {/* Our Values Section */}
+        <div className="mb-20">
+          <h2 className="text-3xl md:text-4xl font-bold font-headline text-center mb-12">Our Values</h2>
+          
+          {/* Top row of 3 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {values.slice(0, 3).map((value) => (
+              <ValueCard key={value.title} {...value} />
+            ))}
+          </div>
+          
+          {/* Bottom row of 2, centered on large screens */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:w-2/3 lg:mx-auto">
+            {values.slice(3).map((value) => (
+              <ValueCard key={value.title} {...value} />
+            ))}
+          </div>
         </div>
 
         {/* Team Section */}
