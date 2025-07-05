@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, writeBatch, doc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,14 +67,14 @@ export default function AdminSignupForm() {
             // Use a batch write to ensure all or nothing
             const batch = writeBatch(db);
 
-            // 1. Create the admin document in the hospitalAdmins collection
-            const adminDocRef = doc(collection(db, "hospitalAdmins"));
+            // 1. Create the admin document using the user's UID as the document ID
+            const adminDocRef = doc(db, "hospitalAdmins", user.uid);
             batch.set(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
                 username: lowercasedUsername,
                 hospitalName: hospitalName,
-                createdAt: new Date(),
+                createdAt: serverTimestamp(),
             });
 
             // 2. Create the hospital document in the hospitals collection and link it to the admin
@@ -116,6 +116,8 @@ export default function AdminSignupForm() {
                 description = 'This email address is already registered.';
             } else if (error.code === 'auth/weak-password') {
                 description = 'The password is too weak. It must be at least 6 characters long.';
+            } else if (error.code === 'permission-denied') {
+                description = 'You do not have permission to perform this action. Please check Firestore rules.'
             }
             toast({ variant: 'destructive', title: 'Sign Up Failed', description });
         } finally {
