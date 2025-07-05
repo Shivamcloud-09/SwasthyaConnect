@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
+import { Eye, EyeOff } from 'lucide-react';
 
 const GoogleIcon = () => (
     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.73 1.9-5.27 0-9.28-4.29-9.28-9.48s4.01-9.48 9.28-9.48c2.92 0 4.88 1.25 6.39 2.7l2.1-2.08C18.96.96 16.27 0 12.48 0 5.88 0 0 5.58 0 12s5.88 12 12.48 12c6.92 0 11.83-4.79 11.83-12.03 0-.79-.08-1.54-.2-2.28H12.48z"/></svg>
@@ -21,6 +22,7 @@ export default function UserLoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const isFirebaseConfigured = !!auth;
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -108,7 +110,17 @@ export default function UserLoginForm() {
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="password-user">Password</Label>
-                    <Input id="password-user" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <div className="relative">
+                        <Input id="password-user" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                    </div>
                 </div>
             </div>
             <Button type="submit" className="w-full mt-6" disabled={isLoading || !isFirebaseConfigured}>
