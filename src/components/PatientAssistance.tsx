@@ -130,10 +130,6 @@ export default function PatientAssistance() {
             toast({ variant: 'destructive', title: 'Geolocation Not Supported' });
             return;
         }
-        if (!db) {
-            toast({ variant: 'destructive', title: 'Database Error', description: 'Firebase is not configured.' });
-            return;
-        }
     
         setIsFindingNearby(true);
         setSearchResults([]);
@@ -145,6 +141,12 @@ export default function PatientAssistance() {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude,
                 };
+
+                if (!db) {
+                    toast({ variant: 'destructive', title: 'Database Error', description: 'Firebase is not configured.' });
+                    setIsFindingNearby(false);
+                    return;
+                }
     
                 try {
                     // First, get all curated hospitals from our DB
