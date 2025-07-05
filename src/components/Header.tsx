@@ -23,14 +23,14 @@ import {
 const mainNavLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/emergency', label: 'Emergency', icon: Siren },
-  { href: '#', label: 'About', icon: Info },
+  { href: '/about', label: 'About', icon: Info },
 ];
 
 // All links for the mobile drawer
 const mobileNavLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/emergency', label: 'Emergency Assistance', icon: Siren },
-  { href: '#', label: 'About', icon: Info },
+  { href: '/about', label: 'About', icon: Info },
   { href: '#', label: 'Contact Us', icon: Phone },
 ];
 
