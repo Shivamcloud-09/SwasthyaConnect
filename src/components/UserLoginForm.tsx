@@ -80,11 +80,11 @@ export default function UserLoginForm() {
             console.error("Google Sign-In Error:", error);
             let description = 'Could not sign in with Google. Please try again.';
             if (error.code === 'auth/popup-closed-by-user') {
-                description = 'The sign-in popup was closed before completing. Please try again.';
+                description = 'The sign-in popup was closed. Please ensure popups are not blocked and try again.';
             } else if (error.code === 'auth/account-exists-with-different-credential') {
-                description = 'An account already exists with the same email address but different sign-in credentials.';
+                description = 'An account already exists with this email. Please sign in using the original method.';
             } else if (error.code === 'auth/operation-not-allowed') {
-                description = 'Google Sign-In is not enabled for this project. Please enable it in your Firebase console.';
+                description = 'Google Sign-In is not enabled for this project. This must be configured in the Firebase console.';
             } else {
                 description = `An unexpected error occurred: ${error.message}`;
             }
