@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 export default function AboutPage() {
   return (
     <div className="relative">
+      {/* Background Image and Overlay */}
       <div className="absolute inset-0">
         <Image
           src="https://images.unsplash.com/photo-1551192422-9b76a6d09322?q=80&w=1920&auto=format&fit=crop"
@@ -17,6 +18,7 @@ export default function AboutPage() {
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
       </div>
 
+      {/* Content */}
       <div className="relative z-10 container mx-auto px-4 py-12 md:py-20">
         
         {/* Hero Section */}
