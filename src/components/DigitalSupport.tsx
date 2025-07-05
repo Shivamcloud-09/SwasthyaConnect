@@ -17,7 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import {
-    Activity, BrainCircuit, ChevronRight, Download, FilePlus, HeartPulse, LoaderCircle, LogIn, Paperclip, Phone, Trash2, UploadCloud, Video, FileText, Bot
+    Activity, BrainCircuit, ChevronRight, Download, FilePlus, HeartPulse, LoaderCircle, LogIn, Paperclip, Phone, Trash2, UploadCloud, Video, FileText, Bot, Droplet
 } from 'lucide-react';
 import { Separator } from './ui/separator';
 
