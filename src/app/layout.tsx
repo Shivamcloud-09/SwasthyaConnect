@@ -7,6 +7,7 @@ import Footer from '@/components/Footer';
 import SOSButton from '@/components/SOSButton';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
+import RoleBasedLayout from '@/components/RoleBasedLayout';
 
 export const metadata: Metadata = {
   title: 'SwasthyaConnect',
@@ -22,7 +23,7 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
@@ -36,7 +37,9 @@ export default function RootLayout({
             <div className="flex flex-col min-h-screen">
             <Header />
             <main className="flex-grow">
+              <RoleBasedLayout>
                 {children}
+              </RoleBasedLayout>
             </main>
             <Footer />
             </div>

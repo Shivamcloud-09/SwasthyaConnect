@@ -13,9 +13,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 import { PhoneCall } from "lucide-react";
 
 export default function SOSButton() {
+  const { role } = useAuth();
+
+  if (role === 'admin') {
+    return null;
+  }
+  
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
