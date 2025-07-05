@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, serverTimestamp, writeBatch, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, writeBatch, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,7 +70,7 @@ export default function AdminSignupForm() {
                 email: user.email,
                 username: lowercasedUsername,
                 hospitalName: hospitalName,
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
             });
 
             // 2. Create the hospital document in the hospitals collection and link it to the admin
@@ -141,7 +141,7 @@ export default function AdminSignupForm() {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="password-signup-admin">Password</Label>
-                        <Input id="password-signup-admin" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        <Input id="password-signup-admin" type="password" value={password} onChange={(e) => setPassword(e.targe.value)} required />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="confirm-password-signup-admin">Confirm Password</Label>
