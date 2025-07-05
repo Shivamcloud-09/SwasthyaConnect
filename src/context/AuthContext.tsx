@@ -40,10 +40,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        // Check for admin role
+        // Check for admin role by looking for a matching UID in the hospitalAdmins collection
         if (db) {
-            const hospitalsRef = collection(db, "hospitals");
-            const q = query(hospitalsRef, where("adminUid", "==", currentUser.uid));
+            const adminRef = collection(db, "hospitalAdmins");
+            const q = query(adminRef, where("uid", "==", currentUser.uid));
             const querySnapshot = await getDocs(q);
             if (!querySnapshot.empty) {
                 setRole('admin');

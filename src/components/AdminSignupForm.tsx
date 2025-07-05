@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ export default function AdminSignupForm() {
     const router = useRouter();
     const { toast } = useToast();
     const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [hospitalName, setHospitalName] = useState('');
@@ -25,8 +26,8 @@ export default function AdminSignupForm() {
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth || !db) {
-            toast({
+        if (!isFirebaseConfigured) {
+           toast({
                variant: 'destructive',
                title: 'Sign Up Failed',
                description: 'Firebase is not configured. Cannot sign up.',
@@ -34,76 +35,77 @@ export default function AdminSignupForm() {
            return;
        }
         if (password !== confirmPassword) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Passwords do not match.',
-            });
+            toast({ variant: 'destructive', title: 'Error', description: 'Passwords do not match.' });
             return;
         }
+        if (!username.match(/^[a-zA-Z0-9_]{3,20}$/)) {
+            toast({ variant: 'destructive', title: 'Invalid Username', description: 'Username must be 3-20 characters long and can only contain letters, numbers, and underscores.' });
+            return;
+        }
+
         setIsLoading(true);
         try {
+            // Check if username is unique
+            const lowercasedUsername = username.toLowerCase();
+            const adminsRef = collection(db, "hospitalAdmins");
+            const q = query(adminsRef, where("username", "==", lowercasedUsername));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                toast({ variant: 'destructive', title: 'Sign Up Failed', description: 'This username is already taken. Please choose another.' });
+                setIsLoading(false);
+                return;
+            }
+
+            // Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Create a corresponding hospital document in Firestore
-            await addDoc(collection(db, "hospitals"), {
-                adminUid: user.uid,
-                name: hospitalName,
-                address: "Please update in dashboard",
-                imageUrl: "https://placehold.co/600x400.png",
-                location: { lat: 0, lng: 0 },
-                timings: "Not set",
-                contact: "",
-                services: [],
-                specialties: [],
-                beds: {
-                    general: { total: 0, available: 0 },
-                    icu: { total: 0, available: 0 },
-                },
-                oxygen: { available: false, lastChecked: "" },
-                medicines: [],
-                doctors: [],
-                hygiene: { rating: 0, lastSanitized: "" },
-                license: "",
+            // Create a corresponding admin document in Firestore
+            await addDoc(collection(db, "hospitalAdmins"), {
+                uid: user.uid,
+                email: user.email,
+                username: lowercasedUsername,
+                hospitalName: hospitalName,
+                createdAt: serverTimestamp(),
             });
 
             toast({
                 title: 'Admin Account Created!',
-                description: `Your hospital "${hospitalName}" is registered. Please log in to update its details.`,
+                description: `Welcome, ${username}! Please log in to continue.`,
             });
             router.push('/login/admin');
         } catch (error: any) {
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/email-already-in-use') {
-                description = 'This email address is already in use.';
+                description = 'This email address is already registered.';
             } else if (error.code === 'auth/weak-password') {
                 description = 'The password is too weak. It must be at least 6 characters long.';
             }
-            toast({
-                variant: 'destructive',
-                title: 'Sign Up Failed',
-                description: description,
-            });
+            toast({ variant: 'destructive', title: 'Sign Up Failed', description });
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md bg-card/80 backdrop-blur-md">
             <form onSubmit={handleSignup}>
                 <CardHeader className="text-center">
-                    <CardTitle className="text-2xl font-headline">Create Hospital Admin Account</CardTitle>
-                    <CardDescription>Enter details to register your hospital</CardDescription>
+                    <CardTitle className="text-2xl font-headline">Create Admin Account</CardTitle>
+                    <CardDescription>Register your hospital and create an admin profile.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                     <div className="grid gap-2">
                         <Label htmlFor="hospital-name-signup">Hospital Name</Label>
-                        <Input id="hospital-name-signup" type="text" value={hospitalName} onChange={(e) => setHospitalName(e.target.value)} placeholder="City General Hospital" required />
+                        <Input id="hospital-name-signup" type="text" value={hospitalName} onChange={(e) => setHospitalName(e.target.value)} placeholder="e.g., City General Hospital" required />
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="username-signup-admin">Username</Label>
+                        <Input id="username-signup-admin" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g., city_general_admin" required />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="email-signup-admin">Email</Label>
+                        <Label htmlFor="email-signup-admin">Admin Email</Label>
                         <Input id="email-signup-admin" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" required />
                     </div>
                     <div className="grid gap-2">

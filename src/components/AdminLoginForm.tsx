@@ -5,7 +5,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,14 +15,14 @@ import { useToast } from '@/hooks/use-toast';
 export default function AdminLoginForm() {
     const router = useRouter();
     const { toast } = useToast();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const isFirebaseConfigured = !!auth;
+    const isFirebaseConfigured = !!auth && !!db;
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) {
+        if (!isFirebaseConfigured) {
             toast({
                 variant: 'destructive',
                 title: 'Login Failed',
@@ -31,9 +32,21 @@ export default function AdminLoginForm() {
         }
         setIsLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            // This flag is checked by the dashboard to protect the route.
-            localStorage.setItem('swasthya-admin-auth', 'true');
+            // 1. Find the user document by username to get their email
+            const adminsRef = collection(db!, "hospitalAdmins");
+            const q = query(adminsRef, where("username", "==", username.toLowerCase()));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                throw new Error("Invalid credentials");
+            }
+            
+            const adminDoc = querySnapshot.docs[0].data();
+            const email = adminDoc.email;
+
+            // 2. Sign in with the retrieved email and provided password
+            await signInWithEmailAndPassword(auth!, email, password);
+            
             toast({
                 title: 'Login Successful',
                 description: 'Redirecting to dashboard...',
@@ -41,16 +54,11 @@ export default function AdminLoginForm() {
             router.push('/admin/dashboard');
         } catch (error: any) {
              console.error("Admin Login Error:", error);
-             let description = 'An unexpected error occurred. Please try again.';
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                description = 'Invalid email or password. Please try again.';
-            } else {
-                description = `An unexpected error occurred: ${error.message}`;
-            }
+             // Generic error for security
              toast({
                 variant: 'destructive',
                 title: 'Login Failed',
-                description: description,
+                description: 'Invalid username or password. Please try again.',
             });
         } finally {
             setIsLoading(false);
@@ -62,8 +70,8 @@ export default function AdminLoginForm() {
         <form onSubmit={handleLogin}>
             <div className="grid gap-4">
                 <div className="grid gap-2">
-                    <Label htmlFor="email-admin">Email</Label>
-                    <Input id="email-admin" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="admin@example.com" />
+                    <Label htmlFor="username-admin">Username</Label>
+                    <Input id="username-admin" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required placeholder="your_username" />
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="password-admin">Password</Label>
