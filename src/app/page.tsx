@@ -83,7 +83,7 @@ export default function Home() {
       <section className="relative w-full bg-background overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=1920&auto=format&fit=crop"
+            src="https://placehold.co/1920x1080.png"
             alt="Hospital background"
             fill
             className="object-cover"

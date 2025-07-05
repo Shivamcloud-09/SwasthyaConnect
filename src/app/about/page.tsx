@@ -85,7 +85,7 @@ export default function AboutPage() {
       {/* Background Image and Overlay */}
       <div className="absolute inset-0">
         <Image
-          src="https://images.unsplash.com/photo-1551192422-9b76a6d09322?q=80&w=1920&auto=format&fit=crop"
+          src="https://placehold.co/1920x1080.png"
           alt="Modern hospital hallway"
           fill
           className="object-cover"
