@@ -116,6 +116,10 @@ export default function HealthMobility() {
             toast({ variant: 'destructive', title: 'Form Incomplete', description: 'Please fill in patient name and address.' });
             return;
         }
+        if (!db) {
+            toast({ variant: 'destructive', title: 'Database Error', description: 'Firebase is not configured. Cannot book ambulance.' });
+            return;
+        }
 
         setIsLoading(true);
         try {
@@ -141,7 +145,7 @@ export default function HealthMobility() {
     
     // Dynamic links for ride services
     const uberLink = location ? `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${location.lat}&pickup[longitude]=${location.lng}` : "#";
-    const rapidoLink = `https://rapido.bike/Home`;
+    const rapidoLink = "https://rapido.bike/Home";
 
     return (
         <div className="relative w-full h-[calc(100vh-80px)] overflow-hidden">
