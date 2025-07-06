@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,33 +64,63 @@ export default function AdminSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Create the admin document in the `hospitalAdmins` collection.
-            // This is the only database write operation in this function.
+            // Prepare a batch write for Firestore
+            const batch = writeBatch(db);
+
+            // Doc 1: The admin user's profile in 'hospitalAdmins'
             const adminDocRef = doc(db, "hospitalAdmins", user.uid);
-            await setDoc(adminDocRef, {
+            batch.set(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
                 username: lowercasedUsername,
                 hospitalName: hospitalName,
-                createdAt: serverTimestamp(),
+                createdAt: new Date(),
             });
 
+            // Doc 2: The new hospital record in 'hospitals'
+            const hospitalDocRef = doc(collection(db, "hospitals"));
+            batch.set(hospitalDocRef, {
+                adminUid: user.uid, // This field is required by Firestore rules
+                name: hospitalName,
+                address: "Default Address - Please Update from Dashboard",
+                imageUrl: "https://placehold.co/600x400.png",
+                location: { lat: 0, lng: 0 },
+                timings: "9am - 5pm",
+                contact: "000-000-0000",
+                services: [],
+                specialties: [],
+                beds: {
+                    general: { total: 100, available: 50 },
+                    icu: { total: 20, available: 10 },
+                },
+                oxygen: { available: true, lastChecked: new Date().toISOString() },
+                medicines: [],
+                doctors: [],
+                hygiene: { rating: 4.0, lastSanitized: new Date().toISOString() },
+                license: "Not Set",
+                timeSlots: [],
+            });
+
+            // Commit the batch write
+            await batch.commit();
+
             toast({
-                title: 'Admin Account Created!',
+                title: 'Admin Account & Hospital Created!',
                 description: `Welcome, ${username}! Redirecting to your dashboard.`,
             });
-            // Redirect to the dashboard where the admin can claim or manage their hospital.
+            
             router.push('/admin/dashboard');
 
         } catch (error: any) {
             console.error("Admin Signup Error:", error);
+            console.log("❌ Firebase Signup Error:", error.code, error.message);
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/email-already-in-use') {
                 description = 'This email address is already registered.';
             } else if (error.code === 'auth/weak-password') {
                 description = 'The password is too weak. It must be at least 6 characters long.';
             } else if (error.code === 'permission-denied' || error.code === 'PERMISSION_DENIED') {
-                description = 'You do not have permission to perform this action. Please check Firestore rules.'
+                description = 'You do not have permission to perform this action. Please check Firestore security rules.'
             }
             toast({ variant: 'destructive', title: 'Sign Up Failed', description });
         } finally {
