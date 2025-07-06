@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, writeBatch } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc, addDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,12 +64,11 @@ export default function AdminSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Prepare a batch write for Firestore
-            const batch = writeBatch(db);
+            // --- Sequential Writes to avoid permission issues with batching ---
 
-            // Doc 1: The admin user's profile in 'hospitalAdmins'
+            // Step 1: Create the admin user's profile.
             const adminDocRef = doc(db, "hospitalAdmins", user.uid);
-            batch.set(adminDocRef, {
+            await setDoc(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
                 username: lowercasedUsername,
@@ -77,10 +76,10 @@ export default function AdminSignupForm() {
                 createdAt: new Date(),
             });
 
-            // Doc 2: The new hospital record in 'hospitals'
-            const hospitalDocRef = doc(collection(db, "hospitals"));
-            batch.set(hospitalDocRef, {
-                adminUid: user.uid, // This field is required by Firestore rules
+            // Step 2: Create the new hospital record and link it to the admin.
+            const hospitalsCollectionRef = collection(db, "hospitals");
+            await addDoc(hospitalsCollectionRef, {
+                adminUid: user.uid, // This is required by Firestore rules
                 name: hospitalName,
                 address: "Default Address - Please Update from Dashboard",
                 imageUrl: "https://placehold.co/600x400.png",
@@ -101,8 +100,6 @@ export default function AdminSignupForm() {
                 timeSlots: [],
             });
 
-            // Commit the batch write
-            await batch.commit();
 
             toast({
                 title: 'Admin Account & Hospital Created!',
@@ -113,7 +110,6 @@ export default function AdminSignupForm() {
 
         } catch (error: any) {
             console.error("Admin Signup Error:", error);
-            console.log("❌ Firebase Signup Error:", error.code, error.message);
             let description = 'An unexpected error occurred. Please try again.';
             if (error.code === 'auth/email-already-in-use') {
                 description = 'This email address is already registered.';
