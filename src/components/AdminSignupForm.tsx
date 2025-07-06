@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, setDoc, addDoc } from "firebase/firestore";
+import { collection, doc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +53,7 @@ export default function AdminSignupForm() {
                 uid: user.uid,
                 email: user.email,
                 hospitalName: hospitalName,
-                createdAt: new Date(),
+                createdAt: serverTimestamp(),
             });
 
             // Step 2: Create the new hospital record and link it to the admin.
