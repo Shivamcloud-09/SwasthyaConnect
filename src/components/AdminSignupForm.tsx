@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, setDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,46 +64,22 @@ export default function AdminSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // 1. Create the admin document first. This needs to complete before the next step
-            //    to satisfy security rules that might check for its existence.
+            // Create the admin document in the `hospitalAdmins` collection.
+            // This is the only database write operation in this function.
             const adminDocRef = doc(db, "hospitalAdmins", user.uid);
             await setDoc(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
                 username: lowercasedUsername,
                 hospitalName: hospitalName,
-                createdAt: new Date(),
+                createdAt: serverTimestamp(),
             });
-
-            // 2. Create the hospital document in the hospitals collection and link it to the admin.
-            const hospitalDocRef = doc(collection(db, "hospitals"));
-            await setDoc(hospitalDocRef, {
-                adminUid: user.uid,
-                name: hospitalName,
-                address: "Not yet specified",
-                imageUrl: "https://images.unsplash.com/photo-1551190822-a9333d803b0c?q=80&w=1920&auto=format&fit=crop",
-                location: { lat: 0, lng: 0 },
-                timings: "Not yet specified",
-                contact: "Not yet specified",
-                services: [],
-                specialties: [],
-                beds: {
-                    general: { total: 0, available: 0 },
-                    icu: { total: 0, available: 0 },
-                },
-                oxygen: { available: false, lastChecked: "N/A" },
-                medicines: [],
-                doctors: [],
-                hygiene: { rating: 0, lastSanitized: "N/A" },
-                license: "Not yet specified",
-            });
-
 
             toast({
                 title: 'Admin Account Created!',
                 description: `Welcome, ${username}! Redirecting to your dashboard.`,
             });
-            // Redirect to the dashboard directly since the hospital is now assigned.
+            // Redirect to the dashboard where the admin can claim or manage their hospital.
             router.push('/admin/dashboard');
 
         } catch (error: any) {
