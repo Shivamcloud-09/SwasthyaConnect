@@ -13,11 +13,11 @@ export default function LoginBackground({ children, className }: LoginBackground
             {/* Background Illustration */}
             <div className="absolute inset-0 z-0 overflow-hidden">
                 <Image
-                    src="https://placehold.co/1920x1080.png"
+                    src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=1920&auto=format&fit=crop"
                     alt="Hospital background"
                     fill
                     className="object-cover"
-                    data-ai-hint="hospital building exterior"
+                    data-ai-hint="hospital building"
                 />
                 <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
                 <div className="absolute inset-0 flex items-center justify-center">
