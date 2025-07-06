@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,12 +64,10 @@ export default function AdminSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Use a batch write to ensure all or nothing
-            const batch = writeBatch(db);
-
-            // 1. Create the admin document using the user's UID as the document ID
+            // 1. Create the admin document first. This needs to complete before the next step
+            //    to satisfy security rules that might check for its existence.
             const adminDocRef = doc(db, "hospitalAdmins", user.uid);
-            batch.set(adminDocRef, {
+            await setDoc(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
                 username: lowercasedUsername,
@@ -77,13 +75,13 @@ export default function AdminSignupForm() {
                 createdAt: new Date(),
             });
 
-            // 2. Create the hospital document in the hospitals collection and link it to the admin
+            // 2. Create the hospital document in the hospitals collection and link it to the admin.
             const hospitalDocRef = doc(collection(db, "hospitals"));
-            batch.set(hospitalDocRef, {
+            await setDoc(hospitalDocRef, {
                 adminUid: user.uid,
                 name: hospitalName,
                 address: "Not yet specified",
-                imageUrl: "https://placehold.co/600x400.png",
+                imageUrl: "https://images.unsplash.com/photo-1551190822-a9333d803b0c?q=80&w=1920&auto=format&fit=crop",
                 location: { lat: 0, lng: 0 },
                 timings: "Not yet specified",
                 contact: "Not yet specified",
@@ -100,7 +98,6 @@ export default function AdminSignupForm() {
                 license: "Not yet specified",
             });
 
-            await batch.commit();
 
             toast({
                 title: 'Admin Account Created!',
@@ -116,7 +113,7 @@ export default function AdminSignupForm() {
                 description = 'This email address is already registered.';
             } else if (error.code === 'auth/weak-password') {
                 description = 'The password is too weak. It must be at least 6 characters long.';
-            } else if (error.code === 'permission-denied') {
+            } else if (error.code === 'permission-denied' || error.code === 'PERMISSION_DENIED') {
                 description = 'You do not have permission to perform this action. Please check Firestore rules.'
             }
             toast({ variant: 'destructive', title: 'Sign Up Failed', description });
