@@ -13,7 +13,7 @@ export default function HospitalAdminLoginPage() {
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl font-headline">Hospital Admin Login</CardTitle>
                     <CardDescription>
-                        Manage your hospital's information. Not a user? 
+                        Log in with your email and password. Not a user? 
                         <Link href="/login" className="underline ml-1">Go back</Link>
                     </CardDescription>
                 </CardHeader>

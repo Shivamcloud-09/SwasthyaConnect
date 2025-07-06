@@ -1,4 +1,4 @@
- 
+
 "use client";
 
 import { useState } from 'react';
@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, query, where, getDocs, doc, setDoc, addDoc } from "firebase/firestore";
+import { collection, doc, setDoc, addDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,6 @@ export default function AdminSignupForm() {
     const router = useRouter();
     const { toast } = useToast();
     const [email, setEmail] = useState('');
-    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [hospitalName, setHospitalName] = useState('');
@@ -41,37 +40,18 @@ export default function AdminSignupForm() {
             toast({ variant: 'destructive', title: 'Error', description: 'Passwords do not match.' });
             return;
         }
-        if (!username.match(/^[a-zA-Z0-9_]{3,20}$/)) {
-            toast({ variant: 'destructive', title: 'Invalid Username', description: 'Username must be 3-20 characters long and can only contain letters, numbers, and underscores.' });
-            return;
-        }
 
         setIsLoading(true);
         try {
-            // Check if username is unique
-            const lowercasedUsername = username.toLowerCase();
-            const adminsRef = collection(db, "hospitalAdmins");
-            const q = query(adminsRef, where("username", "==", lowercasedUsername));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                toast({ variant: 'destructive', title: 'Sign Up Failed', description: 'This username is already taken. Please choose another.' });
-                setIsLoading(false);
-                return;
-            }
-
             // Create user in Firebase Auth
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-
-            // --- Sequential Writes to avoid permission issues with batching ---
 
             // Step 1: Create the admin user's profile.
             const adminDocRef = doc(db, "hospitalAdmins", user.uid);
             await setDoc(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
-                username: lowercasedUsername,
                 hospitalName: hospitalName,
                 createdAt: new Date(),
             });
@@ -79,7 +59,7 @@ export default function AdminSignupForm() {
             // Step 2: Create the new hospital record and link it to the admin.
             const hospitalsCollectionRef = collection(db, "hospitals");
             await addDoc(hospitalsCollectionRef, {
-                adminUid: user.uid, // This is required by Firestore rules
+                adminUid: user.uid,
                 name: hospitalName,
                 address: "Default Address - Please Update from Dashboard",
                 imageUrl: "https://placehold.co/600x400.png",
@@ -103,7 +83,7 @@ export default function AdminSignupForm() {
 
             toast({
                 title: 'Admin Account & Hospital Created!',
-                description: `Welcome, ${username}! Redirecting to your dashboard.`,
+                description: `Welcome! Redirecting to your dashboard.`,
             });
             
             router.push('/admin/dashboard');
@@ -135,10 +115,6 @@ export default function AdminSignupForm() {
                     <div className="grid gap-2">
                         <Label htmlFor="hospital-name-signup">Hospital Name</Label>
                         <Input id="hospital-name-signup" type="text" value={hospitalName} onChange={(e) => setHospitalName(e.target.value)} placeholder="e.g., City General Hospital" required />
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="username-signup-admin">Username</Label>
-                        <Input id="username-signup-admin" type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="e.g., city_general_admin" required />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="email-signup-admin">Admin Email</Label>
