@@ -83,11 +83,11 @@ export default function Home() {
       <section className="relative w-full bg-background overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1629904853716-f0bc54eea481?q=80&w=1920&auto=format&fit=crop"
-            alt="Hospital background"
+            src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=1920&auto=format&fit=crop"
+            alt="Modern hospital building exterior"
             fill
             className="object-cover"
-            data-ai-hint="modern hospital"
+            data-ai-hint="hospital building"
             priority
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
