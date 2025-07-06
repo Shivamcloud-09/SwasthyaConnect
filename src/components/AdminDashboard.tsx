@@ -17,6 +17,9 @@ import { Skeleton } from './ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { LoaderCircle, Building, Wand2 } from 'lucide-react';
 import { hospitals as initialHospitals } from '@/data/hospitals';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import RegisterHospitalForm from './RegisterHospitalForm';
+
 
 type ManagedHospital = Omit<Hospital, 'id'> & { firestoreId: string };
 
@@ -31,6 +34,7 @@ export default function AdminDashboard() {
     const [isClaiming, setIsClaiming] = useState<string | null>(null);
     const [needsSeeding, setNeedsSeeding] = useState(false);
     const [isSeeding, setIsSeeding] = useState(false);
+    const [isRegistering, setIsRegistering] = useState(false);
     const isFirebaseConfigured = !!auth && !!db;
     
     const fetchHospitalData = async () => {
@@ -240,11 +244,11 @@ export default function AdminDashboard() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Claim a Hospital</CardTitle>
+                    <CardTitle>Claim or Register a Hospital</CardTitle>
                     <CardDescription>
                          {needsSeeding 
                             ? "The hospital database is empty. Add the initial set of hospitals to begin."
-                            : "Your account is not linked to a hospital. Choose a hospital from the list to manage it."}
+                            : "Your account is not linked to a hospital. Choose a hospital from the list to manage it, or register a new one."}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -257,29 +261,49 @@ export default function AdminDashboard() {
                                 {isSeeding ? <LoaderCircle className="animate-spin" /> : "Seed Database"}
                             </Button>
                         </div>
-                    ) : unclaimedHospitals.length > 0 ? (
-                        <div className="space-y-4">
-                            {unclaimedHospitals.map(h => (
-                                <div key={h.firestoreId} className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div>
-                                        <p className="font-semibold">{h.name}</p>
-                                        <p className="text-sm text-muted-foreground">{h.address}</p>
-                                    </div>
-                                    <Button
-                                        onClick={() => handleClaimHospital(h.firestoreId)}
-                                        disabled={isClaiming !== null}
-                                    >
-                                        {isClaiming === h.firestoreId ? <LoaderCircle className="animate-spin" /> : <><Building className="mr-2" /> Manage</>}
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
                     ) : (
-                        <div className="text-center py-10">
-                            <Wand2 className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <h3 className="mt-4 text-lg font-medium">All Hospitals Claimed</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">There are no unclaimed hospitals available. You can add a new one via the signup page.</p>
-                            <Button asChild className="mt-4"><a href="/admin/signup">Register a New Hospital</a></Button>
+                        <div>
+                            {unclaimedHospitals.length > 0 && (
+                                <div className="space-y-4">
+                                    <h3 className="font-semibold text-lg">Unclaimed Hospitals</h3>
+                                    {unclaimedHospitals.map(h => (
+                                        <div key={h.firestoreId} className="flex items-center justify-between p-4 border rounded-lg">
+                                            <div>
+                                                <p className="font-semibold">{h.name}</p>
+                                                <p className="text-sm text-muted-foreground">{h.address}</p>
+                                            </div>
+                                            <Button
+                                                onClick={() => handleClaimHospital(h.firestoreId)}
+                                                disabled={isClaiming !== null}
+                                            >
+                                                {isClaiming === h.firestoreId ? <LoaderCircle className="animate-spin" /> : <><Building className="mr-2" /> Claim & Manage</>}
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <div className="text-center py-10 border-t mt-6">
+                                <Wand2 className="mx-auto h-12 w-12 text-muted-foreground" />
+                                <h3 className="mt-4 text-lg font-medium">Is your hospital not listed?</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">Add your hospital to the SwasthyaConnect network.</p>
+                                
+                                <Dialog open={isRegistering} onOpenChange={setIsRegistering}>
+                                    <DialogTrigger asChild>
+                                        <Button className="mt-4">Register a New Hospital</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Register Your Hospital</DialogTitle>
+                                            <DialogDescription>Enter your hospital's name to add it to the network.</DialogDescription>
+                                        </DialogHeader>
+                                        <RegisterHospitalForm onSuccess={() => {
+                                            setIsRegistering(false);
+                                            fetchHospitalData();
+                                        }} />
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
                         </div>
                     )}
                 </CardContent>

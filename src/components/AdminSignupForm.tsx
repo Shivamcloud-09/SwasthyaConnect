@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, setDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,6 @@ export default function AdminSignupForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [hospitalName, setHospitalName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -47,43 +46,18 @@ export default function AdminSignupForm() {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Step 1: Create the admin user's profile.
+            // ONLY create the admin user's profile.
+            // Hospital registration will be handled from the dashboard.
             const adminDocRef = doc(db, "hospitalAdmins", user.uid);
             await setDoc(adminDocRef, {
                 uid: user.uid,
                 email: user.email,
-                hospitalName: hospitalName,
                 createdAt: serverTimestamp(),
             });
 
-            // Step 2: Create the new hospital record and link it to the admin.
-            const hospitalsCollectionRef = collection(db, "hospitals");
-            await addDoc(hospitalsCollectionRef, {
-                adminUid: user.uid,
-                name: hospitalName,
-                address: "Default Address - Please Update from Dashboard",
-                imageUrl: "https://placehold.co/600x400.png",
-                location: { lat: 0, lng: 0 },
-                timings: "9am - 5pm",
-                contact: "000-000-0000",
-                services: [],
-                specialties: [],
-                beds: {
-                    general: { total: 100, available: 50 },
-                    icu: { total: 20, available: 10 },
-                },
-                oxygen: { available: true, lastChecked: new Date().toISOString() },
-                medicines: [],
-                doctors: [],
-                hygiene: { rating: 4.0, lastSanitized: new Date().toISOString() },
-                license: "Not Set",
-                timeSlots: [],
-            });
-
-
             toast({
-                title: 'Admin Account & Hospital Created!',
-                description: `Welcome! Redirecting to your dashboard.`,
+                title: 'Admin Account Created!',
+                description: `Welcome! Redirecting to your dashboard to complete hospital setup.`,
             });
             
             router.push('/admin/dashboard');
@@ -109,13 +83,9 @@ export default function AdminSignupForm() {
             <form onSubmit={handleSignup}>
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl font-headline">Create Admin Account</CardTitle>
-                    <CardDescription>Register your hospital and create an admin profile.</CardDescription>
+                    <CardDescription>Step 1: Create your admin login credentials. You will register your hospital on the next screen.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="hospital-name-signup">Hospital Name</Label>
-                        <Input id="hospital-name-signup" type="text" value={hospitalName} onChange={(e) => setHospitalName(e.target.value)} placeholder="e.g., City General Hospital" required />
-                    </div>
                     <div className="grid gap-2">
                         <Label htmlFor="email-signup-admin">Admin Email</Label>
                         <Input id="email-signup-admin" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" required />
@@ -165,7 +135,7 @@ export default function AdminSignupForm() {
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
                     <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
-                        {isLoading ? 'Creating Account...' : 'Sign Up'}
+                        {isLoading ? 'Creating Account...' : 'Create Admin Account'}
                     </Button>
                     {!isFirebaseConfigured && (
                         <p className="mt-4 text-center text-sm text-destructive">
