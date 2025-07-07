@@ -9,6 +9,7 @@ import {
   getRedirectResult,
   signInWithPopup,
   signInWithRedirect,
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
@@ -41,12 +42,24 @@ export default function UserLoginForm() {
 
     getRedirectResult(auth)
       .then((result) => {
-        if (result) {
+        if (result?.user) {
+          // A user was successfully signed in on redirect.
+          // We show a toast and wait for the auth state to propagate before redirecting.
           toast({
             title: 'Login Successful',
             description: 'Welcome back! Redirecting...',
           });
-          router.push('/');
+
+          // This listener ensures we don't redirect until Firebase has fully updated its state.
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+              router.push('/');
+              unsubscribe(); // Clean up the listener to prevent memory leaks.
+            }
+          });
+        } else {
+          // No user from redirect, so we can stop showing the loading spinner.
+          setIsCheckingRedirect(false);
         }
       })
       .catch((error) => {
@@ -60,8 +73,6 @@ export default function UserLoginForm() {
           title: 'Login Failed',
           description,
         });
-      })
-      .finally(() => {
         setIsCheckingRedirect(false);
       });
   }, [router, toast]);
