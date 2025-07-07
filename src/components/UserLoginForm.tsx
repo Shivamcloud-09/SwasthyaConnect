@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,13 +29,9 @@ export default function UserLoginForm() {
     useEffect(() => {
         if (!auth) return;
         
-        // When the page loads, check if we're coming back from a Google redirect.
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
-                    // This means a user has successfully signed in via redirect.
-                    // The onAuthStateChanged listener in AuthContext will handle the user state update.
-                    // We can just show a success toast and redirect to home.
                     toast({
                         title: 'Login Successful',
                         description: 'Welcome back!',
@@ -44,7 +40,6 @@ export default function UserLoginForm() {
                 }
             })
             .catch((error) => {
-                // Handle any errors that occurred during the redirect sign-in.
                 console.error("Google Redirect Result Error:", error);
                 let description = 'Could not complete sign-in with Google. Please try again.';
                 if (error.code === 'auth/account-exists-with-different-credential') {
@@ -57,7 +52,7 @@ export default function UserLoginForm() {
                 });
             });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run only once on component mount
+    }, []);
 
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -106,17 +101,32 @@ export default function UserLoginForm() {
             return;
         }
         setIsLoading(true);
+
+        // This check determines if the app is running in a preview environment
+        // where popups are likely to be blocked.
+        const isPreviewEnv = window.location.hostname.includes("cloudworkstations.dev");
+
         try {
-            await signInWithRedirect(auth, googleProvider);
-            // The user is redirected, so page logic pauses here. 
-            // The useEffect hook above will handle the result when they return.
+            if (isPreviewEnv) {
+                // For preview environments, use the more robust redirect method.
+                // The result is handled by the useEffect hook above.
+                await signInWithRedirect(auth, googleProvider);
+            } else {
+                // For local development and production, use the popup method for a better UX.
+                await signInWithPopup(auth, googleProvider);
+                toast({
+                    title: 'Login Successful',
+                    description: 'Welcome back!',
+                });
+                router.push('/');
+            }
         } catch (error: any) {
-            console.error("Google Sign-In Error:", error);
+             console.error("Google Sign-In Error:", error);
             let description = 'Could not sign in with Google. Please try again.';
             if (error.code === 'auth/account-exists-with-different-credential') {
                 description = 'An account already exists with this email. Please sign in using the original method.';
-            } else if (error.code === 'auth/operation-not-allowed') {
-                description = 'Google Sign-In is not enabled for this project. This must be configured in the Firebase console.';
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                description = 'The sign-in window was closed before completing.';
             } else {
                 description = `An unexpected error occurred: ${error.message}`;
             }
