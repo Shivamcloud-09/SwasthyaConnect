@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithRedirect } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ export default function UserLoginForm() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!auth) {
-            toast({
+           toast({
                variant: 'destructive',
                title: 'Login Failed',
                description: 'Firebase is not configured. Cannot log in.',
@@ -72,18 +72,13 @@ export default function UserLoginForm() {
         }
         setIsLoading(true);
         try {
-            await signInWithPopup(auth, googleProvider);
-            toast({
-                title: 'Login Successful',
-                description: 'Welcome back!',
-            });
-            router.push('/');
+            await signInWithRedirect(auth, googleProvider);
+            // The user is redirected, so page logic pauses here. 
+            // The AuthContext will handle the successful login upon their return.
         } catch (error: any) {
             console.error("Google Sign-In Error:", error);
             let description = 'Could not sign in with Google. Please try again.';
-            if (error.code === 'auth/popup-closed-by-user') {
-                description = 'The sign-in popup was closed. Please ensure popups are not blocked and try again.';
-            } else if (error.code === 'auth/account-exists-with-different-credential') {
+            if (error.code === 'auth/account-exists-with-different-credential') {
                 description = 'An account already exists with this email. Please sign in using the original method.';
             } else if (error.code === 'auth/operation-not-allowed') {
                 description = 'Google Sign-In is not enabled for this project. This must be configured in the Firebase console.';
@@ -95,7 +90,6 @@ export default function UserLoginForm() {
                 title: 'Login Failed',
                 description: description,
             });
-        } finally {
             setIsLoading(false);
         }
     }
