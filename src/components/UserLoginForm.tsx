@@ -1,15 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   signInWithEmailAndPassword,
-  getRedirectResult,
   signInWithPopup,
-  signInWithRedirect,
-  onAuthStateChanged,
 } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
@@ -31,51 +28,7 @@ export default function UserLoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
-    if (!auth) {
-      setIsCheckingRedirect(false);
-      return;
-    }
-
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          // A user was successfully signed in on redirect.
-          // We show a toast and wait for the auth state to propagate before redirecting.
-          toast({
-            title: 'Login Successful',
-            description: 'Welcome back! Redirecting...',
-          });
-
-          // This listener ensures we don't redirect until Firebase has fully updated its state.
-          const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-              router.push('/');
-              unsubscribe(); // Clean up the listener to prevent memory leaks.
-            }
-          });
-        } else {
-          // No user from redirect, so we can stop showing the loading spinner.
-          setIsCheckingRedirect(false);
-        }
-      })
-      .catch((error) => {
-        console.error("Google Redirect Result Error:", error);
-        let description = 'Could not complete sign-in with Google. Please try again.';
-        if (error.code === 'auth/account-exists-with-different-credential') {
-          description = 'An account already exists with this email. Please sign in using the original method.';
-        }
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description,
-        });
-        setIsCheckingRedirect(false);
-      });
-  }, [router, toast, auth]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,21 +81,13 @@ export default function UserLoginForm() {
     }
 
     setIsLoading(true);
-    const isPreviewEnv = window.location.hostname.includes("cloudworkstations.dev");
-
     try {
-      if (isPreviewEnv) {
-        // Use redirect only in preview
-        await signInWithRedirect(auth, googleProvider);
-      } else {
-        // Use popup in local/prod
-        await signInWithPopup(auth, googleProvider);
-        toast({
-          title: 'Login Successful',
-          description: 'Welcome back!',
-        });
-        router.push('/');
-      }
+      await signInWithPopup(auth, googleProvider);
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back!',
+      });
+      router.push('/');
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       let description = 'Could not sign in with Google. Please try again.';
@@ -150,8 +95,6 @@ export default function UserLoginForm() {
         description = 'An account already exists with this email. Please use the original sign-in method.';
       } else if (error.code === 'auth/popup-closed-by-user') {
         description = 'The sign-in window was closed before completing.';
-      } else {
-        description = `An unexpected error occurred: ${error.message}`;
       }
       toast({
         variant: 'destructive',
@@ -162,15 +105,6 @@ export default function UserLoginForm() {
       setIsLoading(false);
     }
   };
-
-  if (isCheckingRedirect) {
-    return (
-      <div className="pt-6 flex flex-col items-center justify-center gap-4 min-h-[200px]">
-        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Finalizing login...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="pt-6">
