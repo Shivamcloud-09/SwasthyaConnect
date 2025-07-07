@@ -4,7 +4,6 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
-// ✅ Firebase config from environment variables
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -14,35 +13,26 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// ✅ Define initialized variables (non-nullable for safe export)
-let app: FirebaseApp;
-let db: Firestore;
-let auth: Auth;
-let storage: FirebaseStorage;
-let googleProvider: GoogleAuthProvider;
+let app: FirebaseApp | null = null;
+let db: Firestore | null = null;
+let auth: Auth | null = null;
+let storage: FirebaseStorage | null = null;
+let googleProvider: GoogleAuthProvider | null = null;
 
-// ✅ Safely initialize Firebase only once
-if (!getApps().length) {
-  if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-    try {
-      app = initializeApp(firebaseConfig);
-    } catch (e) {
-      console.error("Firebase initialization error:", e);
-      throw e;
-    }
-  } else {
-    console.warn("Missing Firebase configuration.");
-    throw new Error("Missing Firebase environment variables.");
+// Conditionally initialize Firebase if the config is valid.
+// This prevents the app from crashing if environment variables are not set.
+if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+  try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    db = getFirestore(app);
+    auth = getAuth(app);
+    storage = getStorage(app);
+    googleProvider = new GoogleAuthProvider();
+  } catch (e) {
+    console.error("Firebase initialization failed:", e);
   }
 } else {
-  app = getApp();
+    console.warn("Firebase configuration is missing or incomplete. Firebase features will be disabled.");
 }
 
-// ✅ Initialize all services
-db = getFirestore(app);
-auth = getAuth(app);
-storage = getStorage(app);
-googleProvider = new GoogleAuthProvider();
-
-// ✅ Export (non-nullable for safe usage)
 export { app, db, auth, storage, googleProvider };
