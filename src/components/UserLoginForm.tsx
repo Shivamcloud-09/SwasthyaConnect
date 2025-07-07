@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithRedirect } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { auth, googleProvider } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,41 @@ export default function UserLoginForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const isFirebaseConfigured = !!auth;
+
+    // This effect handles the result of a Google Sign-In redirect
+    useEffect(() => {
+        if (!auth) return;
+        
+        // When the page loads, check if we're coming back from a Google redirect.
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    // This means a user has successfully signed in via redirect.
+                    // The onAuthStateChanged listener in AuthContext will handle the user state update.
+                    // We can just show a success toast and redirect to home.
+                    toast({
+                        title: 'Login Successful',
+                        description: 'Welcome back!',
+                    });
+                    router.push('/');
+                }
+            })
+            .catch((error) => {
+                // Handle any errors that occurred during the redirect sign-in.
+                console.error("Google Redirect Result Error:", error);
+                let description = 'Could not complete sign-in with Google. Please try again.';
+                if (error.code === 'auth/account-exists-with-different-credential') {
+                    description = 'An account already exists with this email. Please sign in using the original method.';
+                }
+                toast({
+                    variant: 'destructive',
+                    title: 'Login Failed',
+                    description: description,
+                });
+            });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run only once on component mount
+
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,7 +109,7 @@ export default function UserLoginForm() {
         try {
             await signInWithRedirect(auth, googleProvider);
             // The user is redirected, so page logic pauses here. 
-            // The AuthContext will handle the successful login upon their return.
+            // The useEffect hook above will handle the result when they return.
         } catch (error: any) {
             console.error("Google Sign-In Error:", error);
             let description = 'Could not sign in with Google. Please try again.';
