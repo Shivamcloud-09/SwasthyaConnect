@@ -25,4 +25,4 @@ const nextConfig = {
 
 module.exports = nextConfig;
 
-// Triggering a rebuild to clear the cache and resolve module loading errors.
+// Forcing a server restart to clear a corrupted cache.
