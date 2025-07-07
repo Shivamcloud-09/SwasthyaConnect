@@ -24,3 +24,5 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+
+// Triggering a rebuild to clear cache.
