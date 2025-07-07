@@ -83,8 +83,8 @@ export default function Home() {
       <section className="relative w-full bg-background overflow-hidden">
         <div className="absolute inset-0">
           <Image
-            src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?q=80&w=1920&auto=format&fit=crop"
-            alt="Modern hospital building exterior"
+            src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?q=80&w=2128&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="Hospital Interior"
             fill
             className="object-cover"
             data-ai-hint="hospital building"
