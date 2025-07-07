@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LoaderCircle } from 'lucide-react';
 
 const GoogleIcon = () => (
     <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="h-4 w-4"><title>Google</title><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.73 1.9-5.27 0-9.28-4.29-9.28-9.48s4.01-9.48 9.28-9.48c2.92 0 4.88 1.25 6.39 2.7l2.1-2.08C18.96.96 16.27 0 12.48 0 5.88 0 0 5.58 0 12s5.88 12 12.48 12c6.92 0 11.83-4.79 11.83-12.03 0-.79-.08-1.54-.2-2.28H12.48z"/></svg>
@@ -22,19 +22,22 @@ export default function UserLoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isCheckingRedirect, setIsCheckingRedirect] = useState(true); // Start true to check on mount
     const [showPassword, setShowPassword] = useState(false);
     const isFirebaseConfigured = !!auth;
 
-    // This effect handles the result of a Google Sign-In redirect
     useEffect(() => {
-        if (!auth) return;
+        if (!auth) {
+            setIsCheckingRedirect(false);
+            return;
+        }
         
         getRedirectResult(auth)
             .then((result) => {
                 if (result) {
                     toast({
                         title: 'Login Successful',
-                        description: 'Welcome back!',
+                        description: 'Welcome back! Redirecting...',
                     });
                     router.push('/');
                 }
@@ -50,9 +53,10 @@ export default function UserLoginForm() {
                     title: 'Login Failed',
                     description: description,
                 });
+            }).finally(() => {
+                setIsCheckingRedirect(false);
             });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [router, toast]);
 
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -102,17 +106,12 @@ export default function UserLoginForm() {
         }
         setIsLoading(true);
 
-        // This check determines if the app is running in a preview environment
-        // where popups are likely to be blocked.
         const isPreviewEnv = window.location.hostname.includes("cloudworkstations.dev");
 
         try {
             if (isPreviewEnv) {
-                // For preview environments, use the more robust redirect method.
-                // The result is handled by the useEffect hook above.
                 await signInWithRedirect(auth, googleProvider);
             } else {
-                // For local development and production, use the popup method for a better UX.
                 await signInWithPopup(auth, googleProvider);
                 toast({
                     title: 'Login Successful',
@@ -138,6 +137,15 @@ export default function UserLoginForm() {
             setIsLoading(false);
         }
     }
+
+  if (isCheckingRedirect) {
+    return (
+        <div className="pt-6 flex flex-col items-center justify-center gap-4 min-h-[200px]">
+            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Finalizing login...</p>
+        </div>
+    );
+  }
 
   return (
     <div className="pt-6">
