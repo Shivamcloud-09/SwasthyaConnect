@@ -75,7 +75,7 @@ export default function UserLoginForm() {
         });
         setIsCheckingRedirect(false);
       });
-  }, [router, toast]);
+  }, [router, toast, auth]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
