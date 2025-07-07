@@ -19,11 +19,10 @@ export default function AdminLoginForm() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const isFirebaseConfigured = !!auth;
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isFirebaseConfigured) {
+        if (!auth) {
             toast({
                 variant: 'destructive',
                 title: 'Login Failed',
@@ -82,11 +81,11 @@ export default function AdminLoginForm() {
                     </div>
                 </div>
             </div>
-            <Button type="submit" className="w-full mt-6" disabled={isLoading || !isFirebaseConfigured}>
+            <Button type="submit" className="w-full mt-6" disabled={isLoading || !auth}>
                 {isLoading ? 'Signing In...' : 'Sign in'}
             </Button>
         </form>
-         {!isFirebaseConfigured && (
+         {!auth && (
             <p className="mt-4 text-center text-sm text-destructive">
                 Firebase is not configured. Admin login is disabled.
             </p>

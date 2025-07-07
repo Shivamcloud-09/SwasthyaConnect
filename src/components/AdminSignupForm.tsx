@@ -23,11 +23,10 @@ export default function AdminSignupForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const isFirebaseConfigured = !!auth && !!db;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isFirebaseConfigured) {
+        if (!auth || !db) {
            toast({
                variant: 'destructive',
                title: 'Sign Up Failed',
@@ -134,10 +133,10 @@ export default function AdminSignupForm() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
+                    <Button type="submit" className="w-full" disabled={isLoading || !auth || !db}>
                         {isLoading ? 'Creating Account...' : 'Create Admin Account'}
                     </Button>
-                    {!isFirebaseConfigured && (
+                    {(!auth || !db) && (
                         <p className="mt-4 text-center text-sm text-destructive">
                             Firebase is not configured. Admin sign up is disabled.
                         </p>

@@ -22,7 +22,6 @@ export default function UserSignupForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const isFirebaseConfigured = !!auth;
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -109,10 +108,10 @@ export default function UserSignupForm() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-4">
-                    <Button type="submit" className="w-full" disabled={isLoading || !isFirebaseConfigured}>
+                    <Button type="submit" className="w-full" disabled={isLoading || !auth}>
                         {isLoading ? 'Creating Account...' : 'Sign Up'}
                     </Button>
-                     {!isFirebaseConfigured && (
+                     {!auth && (
                         <p className="mt-4 text-center text-sm text-destructive">
                             Firebase is not configured. Sign up is disabled.
                         </p>
